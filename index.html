@@ -1,0 +1,3150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoMaster — DSA Learning IDE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --s0: #0e0e10;
+  --s1: #141416;
+  --s2: #1c1c20;
+  --s3: #242428;
+  --s4: #2c2c32;
+
+  /* Borders */
+  --b1: #252528;
+  --b2: #313136;
+
+  /* Text */
+  --t1: #f0f0f2;
+  --t2: #9999a8;
+  --t3: #55555f;
+
+  /* Accent – orange (LeetCode-style) */
+  --ac: #f97316;
+  --ac-dim: rgba(249,115,22,.12);
+  --ac-border: rgba(249,115,22,.35);
+
+  /* Semantic */
+  --green:  #22c55e;
+  --green-dim: rgba(34,197,94,.12);
+  --red:    #ef4444;
+  --red-dim: rgba(239,68,68,.12);
+  --blue:   #3b82f6;
+  --blue-dim: rgba(59,130,246,.14);
+  --amber:  #f59e0b;
+  --amber-dim: rgba(245,158,11,.14);
+
+  /* Bar / node colours */
+  --bar-default:   #1e3a5c;
+  --bar-comparing: #7c3a00;
+  --bar-swapping:  #7c1414;
+  --bar-sorted:    #14532d;
+
+  --header-h: 48px;
+  --r: 5px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--s0);
+  color: var(--t1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLBARS
+═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--s4); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--b2); }
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+.app-header {
+  height: var(--header-h);
+  background: var(--s1);
+  border-bottom: 1px solid var(--b1);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  letter-spacing: -0.3px;
+  padding-right: 16px;
+  border-right: 1px solid var(--b1);
+  margin-right: 16px;
+}
+.brand-icon {
+  width: 28px; height: 28px;
+  background: var(--ac);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.brand-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--t3);
+  margin-left: 2px;
+}
+
+.header-tabs {
+  display: flex;
+  height: 100%;
+  gap: 0;
+}
+.header-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t3);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color .15s;
+  white-space: nowrap;
+}
+.header-tab:hover { color: var(--t2); }
+.header-tab.active { color: var(--t1); border-bottom-color: var(--ac); }
+
+.header-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  background: var(--s3);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t2);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.voice-btn:hover { border-color: var(--b2); color: var(--t1); background: var(--s4); }
+.voice-btn.on { border-color: var(--ac-border); color: var(--ac); background: var(--ac-dim); }
+
+.voice-anim {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 12px;
+}
+.va-bar {
+  width: 2.5px;
+  background: currentColor;
+  border-radius: 1px;
+  animation: vaUp .7s ease-in-out infinite alternate;
+}
+.va-bar:nth-child(1) { height: 4px;  animation-delay: 0s; }
+.va-bar:nth-child(2) { height: 10px; animation-delay: .12s; }
+.va-bar:nth-child(3) { height: 6px;  animation-delay: .24s; }
+.va-bar:nth-child(4) { height: 10px; animation-delay: .08s; }
+.va-bar:nth-child(5) { height: 4px;  animation-delay: .18s; }
+@keyframes vaUp { from { transform: scaleY(.3); } to { transform: scaleY(1); } }
+
+.voice-anim.idle .va-bar { animation: none; height: 3px; opacity: .4; }
+
+.run-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  background: var(--ac);
+  border: none;
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.run-btn:hover { opacity: .88; }
+
+.lang-select {
+  height: 30px;
+  padding: 0 8px;
+  background: var(--s3);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--t2);
+  cursor: pointer;
+  outline: none;
+  transition: .15s;
+}
+.lang-select:focus, .lang-select:hover { border-color: var(--b2); color: var(--t1); }
+
+/* ═══════════════════════════════════════════
+   WORKSPACE
+═══════════════════════════════════════════ */
+.workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Pane dividers */
+.divider {
+  width: 1px;
+  background: var(--b1);
+  flex-shrink: 0;
+  cursor: col-resize;
+}
+
+/* ═══════════════════════════════════════════
+   PROBLEM LIST (LEFT SIDEBAR)
+═══════════════════════════════════════════ */
+.panel-problems {
+  width: 220px;
+  min-width: 180px;
+  max-width: 300px;
+  flex-shrink: 0;
+  background: var(--s1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.panel-header-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.problem-list { overflow-y: auto; flex: 1; }
+
+.cat-section { margin-bottom: 2px; }
+.cat-name {
+  padding: 10px 14px 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.prob-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  gap: 10px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background .1s;
+  border-left: 2px solid transparent;
+}
+.prob-item:hover { background: var(--s2); }
+.prob-item.active {
+  background: var(--ac-dim);
+  border-left-color: var(--ac);
+}
+.prob-num {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--t3);
+  min-width: 18px;
+  flex-shrink: 0;
+}
+.prob-item.active .prob-num { color: var(--ac); }
+.prob-name {
+  font-size: 12.5px;
+  color: var(--t2);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prob-item.active .prob-name { color: var(--t1); font-weight: 500; }
+.diff-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.diff-easy   .diff-dot { background: var(--green); }
+.diff-medium .diff-dot { background: var(--amber); }
+.diff-hard   .diff-dot { background: var(--red); }
+
+/* ═══════════════════════════════════════════
+   DESCRIPTION PANEL
+═══════════════════════════════════════════ */
+.panel-desc {
+  width: 300px;
+  min-width: 220px;
+  flex-shrink: 0;
+  background: var(--s1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.desc-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prob-title-row { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.prob-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
+  letter-spacing: -.3px;
+  line-height: 1.3;
+  flex: 1;
+}
+.diff-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 10px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.badge-easy   { background: var(--green-dim);  color: var(--green); }
+.badge-medium { background: var(--amber-dim);  color: var(--amber); }
+.badge-hard   { background: var(--red-dim);    color: var(--red); }
+
+.prob-desc-text {
+  font-size: 12.5px;
+  color: var(--t2);
+  line-height: 1.65;
+}
+
+.io-block {
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.io-block-label {
+  padding: 6px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--t3);
+  background: var(--s3);
+  border-bottom: 1px solid var(--b1);
+}
+.io-block-val {
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.val-blue   { color: var(--blue); }
+.val-amber  { color: var(--amber); }
+.val-green  { color: var(--green); }
+
+/* ═══════════════════════════════════════════
+   VISUALIZER PANEL  (centre)
+═══════════════════════════════════════════ */
+.panel-viz {
+  flex: 1;
+  min-width: 280px;
+  background: var(--s0);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* canvas */
+.viz-stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  /* dot grid */
+  background-color: var(--s0);
+  background-image: radial-gradient(circle, var(--b1) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+#viz-canvas {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px 20px 0;
+  gap: 4px;
+}
+
+/* legend – top-left, very subtle */
+.viz-legend {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(20,20,22,.85);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  padding: 8px 10px;
+  backdrop-filter: blur(4px);
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--t3);
+  font-weight: 500;
+}
+.l-pip {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.l-default   { background: var(--blue); }
+.l-comparing { background: var(--amber); }
+.l-swapping  { background: var(--red); }
+.l-sorted    { background: var(--green); }
+.l-skip      { background: var(--s4); }
+
+/* bars */
+.bar {
+  flex: 1;
+  min-width: 20px;
+  max-width: 60px;
+  border-radius: 3px 3px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,.7);
+  transition: height .2s ease, background .15s;
+  position: relative;
+}
+.bar.default   { background: var(--bar-default); }
+.bar.comparing { background: var(--bar-comparing); }
+.bar.swapping  { background: var(--bar-swapping); }
+.bar.sorted    { background: var(--bar-sorted); }
+.bar.discarded { background: var(--s3); opacity: .3; }
+
+/* top-edge glow */
+.bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 3px 3px 0 0;
+}
+.bar.default::before   { background: var(--blue); }
+.bar.comparing::before { background: var(--amber); }
+.bar.swapping::before  { background: var(--red); }
+.bar.sorted::before    { background: var(--green); }
+
+/* svg overlay */
+.viz-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* nodes */
+.node {
+  position: absolute;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  border: 1.5px solid;
+  transition: background .2s, border-color .2s;
+}
+.node.default   { background: #0f1f38; border-color: #2563eb; color: #60a5fa; }
+.node.comparing { background: #3b1f00; border-color: #d97706; color: #fbbf24; }
+.node.swapping  { background: #3b0808; border-color: #dc2626; color: #f87171; }
+.node.sorted    { background: #052e1a; border-color: #16a34a; color: #4ade80; }
+.node.discarded { background: var(--s3); border-color: var(--b2); color: var(--t3); opacity: .35; }
+
+/* ── Playback strip ─────────────────────────────── */
+.playback-strip {
+  background: var(--s1);
+  border-top: 1px solid var(--b1);
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.step-display {
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.step-pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ac);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 var(--ac);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(249,115,22,.5); }
+  70%  { box-shadow: 0 0 0 5px rgba(249,115,22,0); }
+  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+}
+#status-text {
+  font-size: 11.5px;
+  font-family: var(--mono);
+  color: var(--t2);
+  flex: 1;
+  line-height: 1.4;
+}
+.frame-label {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+.scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+input[type=range] {
+  flex: 1;
+  height: 3px;
+  accent-color: var(--ac);
+  cursor: pointer;
+}
+
+.ctrl-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+.ctrl {
+  width: 32px; height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--s3);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t2);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all .12s;
+}
+.ctrl:hover:not(:disabled) { border-color: var(--ac); color: var(--ac); background: var(--ac-dim); }
+.ctrl:disabled { opacity: .3; cursor: not-allowed; }
+.ctrl.play { width: 52px; font-size: 14px; }
+
+/* ═══════════════════════════════════════════
+   ALGORITHM PANEL
+═══════════════════════════════════════════ */
+.panel-algo {
+  width: 240px;
+  min-width: 200px;
+  flex-shrink: 0;
+  background: var(--s1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.algo-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.algo-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 12px;
+  letter-spacing: -.2px;
+}
+
+.step-list { list-style: none; padding: 0; }
+.step-list li {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--b1);
+  font-size: 12px;
+  color: var(--t2);
+  line-height: 1.5;
+}
+.step-list li:last-child { border-bottom: none; }
+.step-n {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ac);
+  min-width: 16px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.complexity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 14px;
+}
+.cx-card {
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  padding: 8px 10px;
+}
+.cx-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin-bottom: 3px;
+}
+.cx-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ac);
+}
+
+/* ═══════════════════════════════════════════
+   CODE PANEL
+═══════════════════════════════════════════ */
+.panel-code {
+  flex: 1;
+  min-width: 280px;
+  background: var(--s0);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.code-editor-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+#editor-mount {
+  position: absolute;
+  inset: 0;
+}
+
+.terminal-wrap {
+  height: 150px;
+  border-top: 1px solid var(--b1);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: #0a0a0c;
+}
+.term-header {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 8px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.term-header-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.term-status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.term-out {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: #8a8a9a;
+}
+.out-ok  { color: var(--green); }
+.out-err { color: var(--red); }
+.out-run { color: var(--t3); }
+
+/* ═══════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════ */
+#err-bar {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 8px 16px;
+  z-index: 9999;
+}
+
+/* DP 1D */
+.dp1d-canvas { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px; padding:20px; align-content:center; flex-direction:row; }
+.dp-box { display:flex; flex-direction:column; align-items:center; min-width:52px; padding:8px 6px 6px; background:var(--s2); border:1px solid var(--b2); border-radius:5px; transition:background .2s, border-color .2s; gap:4px; }
+.dp-box.dp-empty { opacity:.35; }
+.dp-box.dp-base  { border-color:var(--blue);  background:var(--blue-dim); }
+.dp-box.dp-cur   { border-color:var(--amber); background:var(--amber-dim); }
+.dp-box.dp-done  { border-color:var(--b2);    background:var(--s3); }
+.dp-box.dp-res   { border-color:var(--green); background:var(--green-dim); }
+.dp-box-val { font-family:var(--mono); font-size:14px; font-weight:600; color:var(--t1); }
+.dp-box.dp-base .dp-box-val  { color:var(--blue); }
+.dp-box.dp-cur  .dp-box-val  { color:var(--amber); }
+.dp-box.dp-done .dp-box-val  { color:var(--t2); }
+.dp-box.dp-res  .dp-box-val  { color:var(--green); }
+.dp-box-lbl { font-size:9.5px; color:var(--t3); font-family:var(--mono); }
+
+/* DP 2D */
+.dp2d-canvas { display:flex; align-items:center; justify-content:center; flex-direction:column; padding:12px; overflow:auto; }
+.dp2d-table  { display:flex; flex-direction:column; gap:2px; }
+.dp2d-row    { display:flex; gap:2px; }
+.dp2d-cell   { min-width:42px; height:33px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:12px; font-weight:500; border:1px solid var(--b1); border-radius:3px; transition:.15s; flex-shrink:0; }
+.dp2d-hdr  { background:var(--s3); color:var(--t3); font-size:11px; border-color:transparent; font-weight:600; }
+.dp2d-empty{ background:var(--s2); color:var(--t3); }
+.dp2d-base { background:var(--blue-dim);  border-color:var(--blue)  !important; color:var(--blue); }
+.dp2d-done { background:var(--s3); color:var(--t2); border-color:var(--b2); }
+.dp2d-cur  { background:var(--amber-dim); border-color:var(--amber) !important; color:var(--amber); font-weight:700; }
+.dp2d-res  { background:var(--green-dim); border-color:var(--green) !important; color:var(--green); font-weight:700; }
+</style>
+</head>
+<body>
+<div id="err-bar"></div>
+
+<!-- ══ HEADER ══════════════════════════════════════ -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    AlgoMaster
+    <span class="brand-sub">DSA IDE</span>
+  </div>
+
+  <nav class="header-tabs">
+    <div class="header-tab active">Problems</div>
+    <div class="header-tab">Description</div>
+    <div class="header-tab">Visualizer</div>
+    <div class="header-tab">Algorithm</div>
+    <div class="header-tab">Code</div>
+  </nav>
+
+  <div class="header-end">
+    <div id="voice-indicator" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ac);opacity:0;transition:opacity .2s;">
+      <div class="voice-anim" id="va">
+        <div class="va-bar"></div><div class="va-bar"></div>
+        <div class="va-bar"></div><div class="va-bar"></div>
+        <div class="va-bar"></div>
+      </div>
+      Speaking
+    </div>
+    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">
+      <div class="voice-anim idle" id="va-idle">
+        <div class="va-bar"></div><div class="va-bar"></div>
+        <div class="va-bar"></div><div class="va-bar"></div>
+        <div class="va-bar"></div>
+      </div>
+      Voice: Off
+    </button>
+    <select class="lang-select" id="lang-sel" onchange="changeLang()">
+      <option value="javascript">JavaScript</option>
+      <option value="python">Python</option>
+      <option value="java">Java</option>
+      <option value="cpp">C++</option>
+    </select>
+    <button class="run-btn" onclick="runCode()">▶ Run Code</button>
+  </div>
+</header>
+
+<!-- ══ WORKSPACE ═══════════════════════════════════ -->
+<div class="workspace">
+
+  <!-- Problems -->
+  <div class="panel-problems">
+    <div class="panel-header">
+      <span class="panel-header-title">Problems</span>
+    </div>
+    <div class="problem-list" id="sidebar"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Description -->
+  <div class="panel-desc">
+    <div class="panel-header">
+      <span class="panel-header-title">Description</span>
+    </div>
+    <div class="desc-body">
+      <div>
+        <div class="prob-title-row">
+          <div class="prob-title" id="q-title">Select a problem</div>
+          <span class="diff-badge badge-easy" id="q-diff">Easy</span>
+        </div>
+        <p class="prob-desc-text" id="q-desc" style="margin-top:10px">Choose an algorithm from the list to get started.</p>
+      </div>
+      <div class="io-block">
+        <div class="io-block-label" id="io-lbl">Input</div>
+        <div class="io-block-val val-blue" id="q-input">—</div>
+      </div>
+      <div class="io-block" id="target-blk" style="display:none">
+        <div class="io-block-label">Target</div>
+        <div class="io-block-val val-amber" id="q-target">—</div>
+      </div>
+      <div class="io-block">
+        <div class="io-block-label">Expected Output</div>
+        <div class="io-block-val val-green" id="q-output">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Visualizer -->
+  <div class="panel-viz">
+    <div class="panel-header">
+      <span class="panel-header-title">Visualizer</span>
+    </div>
+    <div class="viz-stage">
+      <div id="viz-canvas"></div>
+      <div class="viz-legend">
+        <div class="legend-row"><div class="l-pip l-default"></div>Default</div>
+        <div class="legend-row"><div class="l-pip l-comparing"></div>Comparing</div>
+        <div class="legend-row"><div class="l-pip l-swapping"></div>Swapping</div>
+        <div class="legend-row"><div class="l-pip l-sorted"></div>Sorted</div>
+        <div class="legend-row"><div class="l-pip l-skip"></div>Skipped</div>
+      </div>
+    </div>
+    <div class="playback-strip">
+      <div class="step-display">
+        <div class="step-pulse"></div>
+        <div id="status-text">Select an algorithm to start.</div>
+        <div class="frame-label" id="frame-lbl">0 / 0</div>
+      </div>
+      <div class="scrubber-row">
+        <input type="range" id="scrubber" min="0" max="0" value="0"
+               oninput="scrubTo(this.value)" disabled>
+      </div>
+      <div class="ctrl-row">
+        <button class="ctrl" id="btn-prev" onclick="stepPrev()" disabled title="Previous step">⏮</button>
+        <button class="ctrl play" id="btn-play" onclick="togglePlay()" disabled title="Play / Pause">▶</button>
+        <button class="ctrl" id="btn-next" onclick="stepNext()" disabled title="Next step">⏭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Algorithm -->
+  <div class="panel-algo">
+    <div class="panel-header">
+      <span class="panel-header-title">Algorithm</span>
+    </div>
+    <div class="algo-body" id="algo-body">
+      <p style="color:var(--t3);font-size:12px">Select a problem to view the algorithm.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Code -->
+  <div class="panel-code">
+    <div class="panel-header">
+      <span class="panel-header-title">Solution</span>
+    </div>
+    <div class="code-editor-wrap">
+      <div id="editor-mount"></div>
+    </div>
+    <div class="terminal-wrap">
+      <div class="term-header">
+        <div class="term-status-dot"></div>
+        <span class="term-header-title">Console</span>
+      </div>
+      <div class="term-out" id="terminal">
+        <span class="out-run">&gt; Ready. Select a problem and click Run Code.</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /workspace -->
+
+<script>
+window.onerror = (msg, _u, line) => {
+  const b = document.getElementById('err-bar');
+  b.style.display = 'block';
+  b.textContent = `Error (line ${line}): ${msg}`;
+};
+
+/* ══════════════════════════════════════════
+   VOICE
+══════════════════════════════════════════ */
+let voiceOn = false;
+
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  const btn = document.getElementById('voice-btn');
+  const vaIdle = document.getElementById('va-idle');
+  btn.classList.toggle('on', voiceOn);
+  btn.childNodes[1].nodeValue = ` Voice: ${voiceOn ? 'On' : 'Off'}`;
+  vaIdle.classList.toggle('idle', !voiceOn);
+  if (!voiceOn) stopSpeak();
+}
+
+function speak(text) {
+  if (!voiceOn || !window.speechSynthesis) return;
+  stopSpeak();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.93; u.pitch = 1; u.volume = 1;
+  const vi = document.getElementById('voice-indicator');
+  u.onstart = () => { vi.style.opacity = '1'; };
+  u.onend   = () => { vi.style.opacity = '0'; };
+  u.onerror = () => { vi.style.opacity = '0'; };
+  speechSynthesis.speak(u);
+}
+
+function stopSpeak() {
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  document.getElementById('voice-indicator').style.opacity = '0';
+}
+
+/* ══════════════════════════════════════════
+   DATA
+══════════════════════════════════════════ */
+const problems = [
+  { cat:'Searching', id:1,  type:'array', name:'Linear Search',       diff:'Easy',
+    target:56, input:[12,45,7,23,56,89,34], expected:4,
+    desc:'Sequentially checks each element until the target is found or the list ends. Time complexity O(n).',
+    steps:['Start at index 0.','Compare element with target.','If match → return index.','Else → advance to next.','End of array → return −1.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(arr, target) {\n  for (let i = 0; i < arr.length; i++) {\n    if (arr[i] === target) return i;\n  }\n  return -1;\n}' },
+
+  { cat:'Searching', id:2,  type:'array', name:'Binary Search',        diff:'Easy',
+    target:56, input:[2,5,8,12,16,23,38,56,72,91], expected:7,
+    desc:'Eliminates half the search space each step on a sorted array.',
+    steps:['Set L = 0, R = n − 1.','Compute mid = ⌊(L+R)/2⌋.','arr[mid] == target → return mid.','arr[mid] < target → L = mid + 1.','Else R = mid − 1. Repeat.'],
+    time:'O(log n)', space:'O(1)',
+    starter:'function solve(arr, target) {\n  let l = 0, r = arr.length - 1;\n  while (l <= r) {\n    const mid = (l + r) >> 1;\n    if (arr[mid] === target) return mid;\n    arr[mid] < target ? l = mid + 1 : r = mid - 1;\n  }\n  return -1;\n}' },
+
+  { cat:'Sorting', id:3,  type:'array', name:'Bubble Sort',           diff:'Easy',
+    input:[45,23,56,12,7,89,34], expected:[7,12,23,34,45,56,89],
+    desc:'Repeatedly swaps adjacent elements that are in the wrong order.',
+    steps:['Outer loop i = 0 to n−1.','Inner loop j = 0 to n−i−2.','Compare arr[j] and arr[j+1].','Swap if out of order.','Largest element sinks to end each pass.'],
+    time:'O(n²)', space:'O(1)',
+    starter:'function solve(arr) {\n  for (let i = 0; i < arr.length; i++)\n    for (let j = 0; j < arr.length - i - 1; j++)\n      if (arr[j] > arr[j+1]) [arr[j], arr[j+1]] = [arr[j+1], arr[j]];\n  return arr;\n}' },
+
+  { cat:'Sorting', id:4,  type:'array', name:'Selection Sort',        diff:'Easy',
+    input:[64,25,12,22,11,90,33], expected:[11,12,22,25,33,64,90],
+    desc:'Finds the minimum in each pass and swaps it into the sorted boundary.',
+    steps:['For i = 0 to n−1.','Find minimum in arr[i..n−1].','Swap min with arr[i].','Boundary advances by 1.'],
+    time:'O(n²)', space:'O(1)',
+    starter:'function solve(arr) {\n  for (let i = 0; i < arr.length; i++) {\n    let mi = i;\n    for (let j = i+1; j < arr.length; j++) if (arr[j] < arr[mi]) mi = j;\n    [arr[i], arr[mi]] = [arr[mi], arr[i]];\n  }\n  return arr;\n}' },
+
+  { cat:'Sorting', id:5,  type:'array', name:'Insertion Sort',        diff:'Easy',
+    input:[43,31,26,29,12,22,11], expected:[11,12,22,26,29,31,43],
+    desc:'Builds the sorted array one element at a time by inserting each into its correct position.',
+    steps:['Treat arr[0] as sorted.','Pick arr[i] as key.','Shift all sorted elements > key right.','Insert key at the gap.'],
+    time:'O(n²)', space:'O(1)',
+    starter:'function solve(arr) {\n  for (let i = 1; i < arr.length; i++) {\n    let key = arr[i], j = i - 1;\n    while (j >= 0 && arr[j] > key) { arr[j+1] = arr[j--]; }\n    arr[j+1] = key;\n  }\n  return arr;\n}' },
+
+  { cat:'Sorting', id:6,  type:'array', name:'Quick Sort',            diff:'Medium',
+    input:[10,80,30,90,40,50,70], expected:[10,30,40,50,70,80,90],
+    desc:'Divide-and-conquer — partitions around a pivot, then recursively sorts each half.',
+    steps:['Choose last element as pivot.','Partition: elements < pivot go left.','Place pivot at its final sorted index.','Recurse on both halves.'],
+    time:'O(n log n) avg', space:'O(log n)',
+    starter:'function solve(arr, lo=0, hi=arr.length-1) {\n  if (lo < hi) {\n    let p = arr[hi], i = lo - 1;\n    for (let j = lo; j < hi; j++)\n      if (arr[j] < p) [arr[++i], arr[j]] = [arr[j], arr[i]];\n    [arr[i+1], arr[hi]] = [arr[hi], arr[i+1]];\n    solve(arr, lo, i); solve(arr, i+2, hi);\n  }\n  return arr;\n}' },
+
+  { cat:'Sorting', id:7,  type:'array', name:'Heap Sort',             diff:'Medium',
+    input:[4,10,3,5,1,12,8], expected:[1,3,4,5,8,10,12],
+    desc:'Builds a max-heap then extracts the maximum repeatedly to sort.',
+    steps:['Build max-heap from array.','Root = largest element.','Swap root ↔ last element.','Reduce heap size, heapify root.','Repeat until sorted.'],
+    time:'O(n log n)', space:'O(1)',
+    starter:'function solve(arr) {\n  const n = arr.length;\n  const h = (n,i) => {\n    let x=i,l=2*i+1,r=2*i+2;\n    if(l<n&&arr[l]>arr[x])x=l;\n    if(r<n&&arr[r]>arr[x])x=r;\n    if(x!==i){[arr[i],arr[x]]=[arr[x],arr[i]];h(n,x);}\n  };\n  for(let i=~~(n/2)-1;i>=0;i--)h(n,i);\n  for(let i=n-1;i>0;i--){[arr[0],arr[i]]=[arr[i],arr[0]];h(i,0);}\n  return arr;\n}' },
+
+  { cat:'Sorting', id:8,  type:'array', name:'Merge Sort',            diff:'Medium',
+    input:[38,27,43,3,9,82,10], expected:[3,9,10,27,38,43,82],
+    desc:'Recursively divides the array in half, sorts each half, then merges them back.',
+    steps:['Divide array at midpoint.','Recurse on left half.','Recurse on right half.','Merge two sorted halves.','Compare front elements, take smaller.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(arr) {\n  if (arr.length <= 1) return arr;\n  const m = arr.length >> 1;\n  const L = solve(arr.slice(0, m)), R = solve(arr.slice(m));\n  const res = []; let i=0, j=0;\n  while (i<L.length && j<R.length) res.push(L[i]<=R[j]?L[i++]:R[j++]);\n  return [...res, ...L.slice(i), ...R.slice(j)];\n}' },
+
+  { cat:'Trees', id:9,  type:'tree', name:'Inorder Traversal',      diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[4,2,5,1,6,3,7],
+    desc:'Left → Root → Right. For a binary search tree this yields sorted order.',
+    steps:['Recurse on left subtree.','Visit root node.','Recurse on right subtree.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [];\n  const go = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    go(2*i+1); res.push(tree[i]); go(2*i+2);\n  };\n  go(0); return res;\n}' },
+
+  { cat:'Trees', id:10, type:'tree', name:'Preorder Traversal',     diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[1,2,4,5,3,6,7],
+    desc:'Root → Left → Right. Used to serialize or copy a tree.',
+    steps:['Visit root node.','Recurse on left subtree.','Recurse on right subtree.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [];\n  const go = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    res.push(tree[i]); go(2*i+1); go(2*i+2);\n  };\n  go(0); return res;\n}' },
+
+  { cat:'Trees', id:11, type:'tree', name:'Postorder Traversal',    diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[4,5,2,6,7,3,1],
+    desc:'Left → Right → Root. Used to delete trees or evaluate expression trees.',
+    steps:['Recurse on left subtree.','Recurse on right subtree.','Visit root node last.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [];\n  const go = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    go(2*i+1); go(2*i+2); res.push(tree[i]);\n  };\n  go(0); return res;\n}' },
+
+  { cat:'Trees', id:12, type:'tree', name:'Level Order BFS',        diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[1,2,3,4,5,6,7],
+    desc:'Visits nodes level by level using a queue — classic BFS on a tree.',
+    steps:['Enqueue root.','Dequeue front node.','Process node.','Enqueue left then right child.','Repeat until empty.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  const res = [], q = [0];\n  while (q.length) {\n    const i = q.shift();\n    if (i < tree.length && tree[i] != null) {\n      res.push(tree[i]); q.push(2*i+1, 2*i+2);\n    }\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:13, type:'tree', name:'Max Depth',              diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:3,
+    desc:'Returns the height — the length of the longest root-to-leaf path.',
+    steps:['Base: null node → return 0.','Get depth of left subtree.','Get depth of right subtree.','Return 1 + max(left, right).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const d = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    return 1 + Math.max(d(2*i+1), d(2*i+2));\n  };\n  return d(0);\n}' },
+
+  { cat:'Graphs', id:14, type:'graph', name:'BFS Traversal',        diff:'Medium',
+    input:[[1,2],[0,3,4],[0],[1],[1]], expected:[0,1,2,3,4],
+    desc:'Explores the graph level by level from node 0 using a queue.',
+    steps:['Enqueue start node, mark visited.','Dequeue node u.','Record u.','Enqueue each unvisited neighbor.','Repeat until queue empty.'],
+    time:'O(V + E)', space:'O(V)',
+    starter:'function solve(adj) {\n  const vis = new Set([0]), q = [0], res = [];\n  while (q.length) {\n    const u = q.shift(); res.push(u);\n    for (const v of adj[u]) if (!vis.has(v)) { vis.add(v); q.push(v); }\n  }\n  return res;\n}' },
+
+  { cat:'Graphs', id:15, type:'graph', name:'DFS Traversal',        diff:'Medium',
+    input:[[1,2],[0,3,4],[0],[1],[1]], expected:[0,1,3,4,2],
+    desc:'Explores the graph depth-first — goes as far as possible before backtracking.',
+    steps:['Mark node visited.','Record node.','For each unvisited neighbor: recurse.','Backtrack when no unvisited neighbors.'],
+    time:'O(V + E)', space:'O(V)',
+    starter:'function solve(adj) {\n  const vis = new Set(), res = [];\n  const dfs = u => { vis.add(u); res.push(u); adj[u].forEach(v => { if (!vis.has(v)) dfs(v); }); };\n  dfs(0); return res;\n}' },
+
+  { cat:'Graphs', id:16, type:'graph', name:'Path Exists',          diff:'Easy',
+    target:4, input:[[1,2],[0,3],[0],[1],[]], expected:false,
+    desc:'Determines whether any path exists from node 0 to the target node.',
+    steps:['BFS from source node 0.','Track visited nodes.','Target encountered → return true.','Exhausted all reachable nodes → return false.'],
+    time:'O(V + E)', space:'O(V)',
+    starter:'function solve(adj, target) {\n  const vis = new Set([0]), q = [0];\n  while (q.length) {\n    const u = q.shift();\n    if (u === target) return true;\n    for (const v of adj[u]) if (!vis.has(v)) { vis.add(v); q.push(v); }\n  }\n  return false;\n}' },
+
+  { cat:'Graphs', id:17, type:'graph', name:'Connected Components',  diff:'Medium',
+    input:[[1],[0],[3],[2],[]], expected:3,
+    desc:'Counts the number of distinct connected sub-graphs.',
+    steps:['For each unvisited node: count++.','DFS/BFS to mark all reachable nodes.','Repeat until every node is visited.'],
+    time:'O(V + E)', space:'O(V)',
+    starter:'function solve(adj) {\n  const vis = new Set(); let count = 0;\n  const dfs = u => { vis.add(u); adj[u].forEach(v => { if (!vis.has(v)) dfs(v); }); };\n  for (let i = 0; i < adj.length; i++) if (!vis.has(i)) { count++; dfs(i); }\n  return count;\n}' },
+
+  { cat:'Graphs', id:18, type:'graph', name:'Cycle Detection',      diff:'Medium',
+    input:[[1,2],[0,2],[0,1]], expected:true,
+    desc:'Detects whether an undirected graph contains a cycle using DFS with parent tracking.',
+    steps:['DFS tracking parent of each node.','If a visited neighbor ≠ parent → cycle!','Return true on cycle, false otherwise.'],
+    time:'O(V + E)', space:'O(V)',
+    starter:'function solve(adj) {\n  const vis = new Set();\n  const dfs = (u, par) => {\n    vis.add(u);\n    for (const v of adj[u]) {\n      if (!vis.has(v)) { if (dfs(v, u)) return true; }\n      else if (v !== par) return true;\n    }\n    return false;\n  };\n  for (let i = 0; i < adj.length; i++) if (!vis.has(i) && dfs(i, -1)) return true;\n  return false;\n}' },
+
+  // ══ DYNAMIC PROGRAMMING ══
+  { cat:'Dynamic Programming', id:19, type:'dp1d', name:'Fibonacci Number', diff:'Easy',
+    input:8, expected:21,
+    desc:'Compute the nth Fibonacci number using bottom-up DP. F(0)=0, F(1)=1, F(n)=F(n-1)+F(n-2).',
+    steps:['Initialize dp[0]=0, dp[1]=1.','For i=2 to n: dp[i]=dp[i-1]+dp[i-2].','Return dp[n].'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(n) {\n  const dp = Array(n+1).fill(0);\n  if(n>=1) dp[1]=1;\n  for(let i=2;i<=n;i++) dp[i]=dp[i-1]+dp[i-2];\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:20, type:'dp1d', name:'Climbing Stairs', diff:'Easy',
+    input:6, expected:13,
+    desc:'Count distinct ways to climb n stairs, taking 1 or 2 steps at a time.',
+    steps:['dp[0]=1, dp[1]=1 (base).','dp[i]=dp[i-1]+dp[i-2] for i>=2.','Return dp[n].'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(n) {\n  const dp = Array(n+1).fill(0);\n  dp[0]=1; if(n>=1) dp[1]=1;\n  for(let i=2;i<=n;i++) dp[i]=dp[i-1]+dp[i-2];\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:21, type:'dp1d', name:'Min Cost Climbing Stairs', diff:'Easy',
+    input:[10,15,20], expected:15,
+    desc:'Find minimum cost to reach the top. You can start at index 0 or 1.',
+    steps:['Cost array given.','dp[i]=cost[i]+min(dp[i-1],dp[i-2]).','Answer=min(dp[n-1],dp[n-2]).'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(cost) {\n  const n=cost.length, dp=[...cost];\n  for(let i=2;i<n;i++) dp[i]=cost[i]+Math.min(dp[i-1],dp[i-2]);\n  return Math.min(dp[n-1],dp[n-2]);\n}' },
+
+  { cat:'Dynamic Programming', id:22, type:'dp1d', name:'House Robber', diff:'Easy',
+    input:[2,7,9,3,1], expected:11,
+    desc:'Rob houses to maximize money without robbing two adjacent houses.',
+    steps:['dp[0]=nums[0].','dp[1]=max(nums[0],nums[1]).','dp[i]=max(dp[i-1], dp[i-2]+nums[i]).','Return dp[n-1].'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(nums) {\n  const n=nums.length; if(!n) return 0;\n  if(n===1) return nums[0];\n  const dp=[...nums];\n  dp[1]=Math.max(nums[0],nums[1]);\n  for(let i=2;i<n;i++) dp[i]=Math.max(dp[i-1],dp[i-2]+nums[i]);\n  return dp[n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:23, type:'dp1d', name:'Best Time to Buy & Sell Stock', diff:'Easy',
+    input:[7,1,5,3,6,4], expected:5,
+    desc:'Find max profit from one buy-sell transaction.',
+    steps:['Track minPrice seen so far.','profit=max(profit, price-minPrice).','Return max profit.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(prices) {\n  let min=Infinity, profit=0;\n  for(const p of prices){ min=Math.min(min,p); profit=Math.max(profit,p-min); }\n  return profit;\n}' },
+
+  { cat:'Dynamic Programming', id:24, type:'dp1d', name:'Maximum Subarray (Kadane)', diff:'Easy',
+    input:[-2,1,-3,4,-1,2,1,-5,4], expected:6,
+    desc:"Kadane's algorithm: find the contiguous subarray with maximum sum.",
+    steps:['dp[0]=nums[0].','dp[i]=max(nums[i], dp[i-1]+nums[i]).','Return max of dp array.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(nums) {\n  let cur=nums[0], best=nums[0];\n  for(let i=1;i<nums.length;i++){ cur=Math.max(nums[i],cur+nums[i]); best=Math.max(best,cur); }\n  return best;\n}' },
+
+  { cat:'Dynamic Programming', id:25, type:'dp1d', name:'N-th Tribonacci', diff:'Easy',
+    input:7, expected:13,
+    desc:'T(0)=0, T(1)=1, T(2)=1, T(n)=T(n-1)+T(n-2)+T(n-3).',
+    steps:['Base: T(0)=0, T(1)=1, T(2)=1.','For i>=3: dp[i]=dp[i-1]+dp[i-2]+dp[i-3].','Return dp[n].'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(n) {\n  if(n===0) return 0; if(n<=2) return 1;\n  const dp=[0,1,1];\n  for(let i=3;i<=n;i++) dp.push(dp[i-1]+dp[i-2]+dp[i-3]);\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:26, type:'dp1d', name:'Counting Bits', diff:'Easy',
+    input:5, expected:[0,1,1,2,1,2],
+    desc:'For each i from 0 to n, count number of 1-bits. dp[i]=dp[i>>1]+(i&1).',
+    steps:['dp[0]=0.','For i=1 to n: dp[i]=dp[i>>1]+(i&1).','Return dp array.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(n) {\n  const dp=Array(n+1).fill(0);\n  for(let i=1;i<=n;i++) dp[i]=dp[i>>1]+(i&1);\n  return dp;\n}' },
+
+  { cat:'Dynamic Programming', id:27, type:'dp2d', name:'Is Subsequence', diff:'Easy',
+    input:["ace","abcde"], expected:true,
+    desc:'Check if s is a subsequence of t using two pointers (DP view).',
+    steps:['i=0 pointer into s, j=0 into t.','If s[i]==t[j], advance i.','Always advance j.','Return i==s.length.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(input) {\n  const [s,t]=input; let i=0;\n  for(const c of t) if(i<s.length&&c===s[i]) i++;\n  return i===s.length;\n}' },
+
+  { cat:'Dynamic Programming', id:28, type:'dp2d', name:"Pascal's Triangle Row", diff:'Easy',
+    input:5, expected:[1,4,6,4,1],
+    desc:'Return the nth row (0-indexed) of Pascal triangle. dp[j]=dp[j]+dp[j-1].',
+    steps:["Start with row=[1].",'For each row: update right-to-left.','dp[j]+=dp[j-1].','Row n-1 is the answer.'],
+    time:'O(n²)', space:'O(n)',
+    starter:'function solve(n) {\n  const dp=Array(n).fill(0); dp[0]=1;\n  for(let i=1;i<n;i++) for(let j=i;j>0;j--) dp[j]+=dp[j-1];\n  return dp;\n}' },
+
+  { cat:'Dynamic Programming', id:29, type:'dp1d', name:'Coin Change', diff:'Medium',
+    input:[1,5,11], target:15, expected:3,
+    desc:'Minimum coins to make amount. dp[a]=min coins for amount a.',
+    steps:['dp[0]=0, dp[i]=Infinity.','For each amount a: try each coin c.','dp[a]=min(dp[a], dp[a-c]+1).','Return dp[amount].'],
+    time:'O(amount * coins)', space:'O(amount)',
+    starter:'function solve(coins, target) {\n  const dp=Array(target+1).fill(Infinity); dp[0]=0;\n  for(let a=1;a<=target;a++) for(const c of coins) if(c<=a&&dp[a-c]+1<dp[a]) dp[a]=dp[a-c]+1;\n  return dp[target]===Infinity?-1:dp[target];\n}' },
+
+  { cat:'Dynamic Programming', id:30, type:'dp1d', name:'Longest Increasing Subsequence', diff:'Medium',
+    input:[10,9,2,5,3,7,101,18], expected:4,
+    desc:'Length of longest strictly increasing subsequence.',
+    steps:['dp[i]=1 for all i.','For j<i: if nums[j]<nums[i]: dp[i]=max(dp[i],dp[j]+1).','Return max(dp).'],
+    time:'O(n²)', space:'O(n)',
+    starter:'function solve(nums) {\n  const dp=Array(nums.length).fill(1);\n  for(let i=1;i<nums.length;i++) for(let j=0;j<i;j++) if(nums[j]<nums[i]) dp[i]=Math.max(dp[i],dp[j]+1);\n  return Math.max(...dp);\n}' },
+
+  { cat:'Dynamic Programming', id:31, type:'dp2d', name:'Longest Common Subsequence', diff:'Medium',
+    input:["abcde","ace"], expected:3,
+    desc:'Length of longest common subsequence of two strings.',
+    steps:['dp[i][j]=LCS of s1[0..i-1] and s2[0..j-1].','If chars match: dp[i][j]=dp[i-1][j-1]+1.','Else: max(dp[i-1][j], dp[i][j-1]).','Return dp[m][n].'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [s1,s2]=input, m=s1.length, n=s2.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=s1[i-1]===s2[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);\n  return dp[m][n];\n}' },
+
+  { cat:'Dynamic Programming', id:32, type:'dp2d', name:'0/1 Knapsack', diff:'Medium',
+    input:[7,[1,3,4,5],[4,4,5,7]], expected:9,
+    desc:'Maximize value with weight capacity W. Each item used at most once.',
+    steps:['dp[i][w]=max value using items 0..i-1 with capacity w.','Skip or include item i.','dp[i][w]=max(dp[i-1][w], val[i-1]+dp[i-1][w-wt[i-1]]).'],
+    time:'O(nW)', space:'O(nW)',
+    starter:'function solve(input) {\n  const [W,wt,val]=input, n=wt.length;\n  const dp=Array.from({length:n+1},()=>Array(W+1).fill(0));\n  for(let i=1;i<=n;i++) for(let w=0;w<=W;w++){\n    dp[i][w]=dp[i-1][w];\n    if(wt[i-1]<=w) dp[i][w]=Math.max(dp[i][w],val[i-1]+dp[i-1][w-wt[i-1]]);\n  }\n  return dp[n][W];\n}' },
+
+  { cat:'Dynamic Programming', id:33, type:'dp2d', name:'Unique Paths', diff:'Medium',
+    input:[4,4], expected:20,
+    desc:'Count unique paths in an m×n grid moving only right or down.',
+    steps:['dp[0][j]=1, dp[i][0]=1 (only one way along edges).','dp[i][j]=dp[i-1][j]+dp[i][j-1].','Return dp[m-1][n-1].'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [m,n]=input;\n  const dp=Array.from({length:m},()=>Array(n).fill(1));\n  for(let i=1;i<m;i++) for(let j=1;j<n;j++) dp[i][j]=dp[i-1][j]+dp[i][j-1];\n  return dp[m-1][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:34, type:'dp1d', name:'Jump Game', diff:'Medium',
+    input:[2,3,1,1,4], expected:true,
+    desc:'Can you reach the last index? Track max reachable index.',
+    steps:['maxReach=0.','For each i: if i>maxReach, stuck.','maxReach=max(maxReach, i+nums[i]).','Return true if we get through.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(nums) {\n  let max=0;\n  for(let i=0;i<nums.length;i++){ if(i>max) return false; max=Math.max(max,i+nums[i]); }\n  return true;\n}' },
+
+  { cat:'Dynamic Programming', id:35, type:'dp1d', name:'Jump Game II', diff:'Medium',
+    input:[2,3,0,1,4], expected:2,
+    desc:'Minimum jumps to reach the last index.',
+    steps:['Greedy BFS: track current end and farthest reach.','When we reach current end, increment jumps.','Update current end to farthest.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(nums) {\n  let jumps=0, cur=0, far=0;\n  for(let i=0;i<nums.length-1;i++){ far=Math.max(far,i+nums[i]); if(i===cur){ jumps++; cur=far; } }\n  return jumps;\n}' },
+
+  { cat:'Dynamic Programming', id:36, type:'dp1d', name:'Decode Ways', diff:'Medium',
+    input:"226", expected:3,
+    desc:'Count number of ways to decode a digit string. 1-26 map to A-Z.',
+    steps:['dp[0]=1, dp[1]=s[0]!="0"?1:0.','For i>=2: check single digit (s[i-1]) and two digits (s[i-2..i-1]).','Accumulate valid decodings.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(s) {\n  const n=s.length; if(!n) return 0;\n  const dp=Array(n+1).fill(0); dp[0]=1; dp[1]=s[0]!=="0"?1:0;\n  for(let i=2;i<=n;i++){\n    if(s[i-1]!=="0") dp[i]+=dp[i-1];\n    const two=+s.slice(i-2,i);\n    if(two>=10&&two<=26) dp[i]+=dp[i-2];\n  }\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:37, type:'dp1d', name:'Word Break', diff:'Medium',
+    input:["leetcode",["leet","code"]], expected:true,
+    desc:'Can the string be segmented into dictionary words?',
+    steps:['dp[0]=true (empty prefix).','For i=1 to n: check all j<i where dp[j] and s[j..i] in dict.','Return dp[n].'],
+    time:'O(n²)', space:'O(n)',
+    starter:'function solve(input) {\n  const [s,dict]=input, n=s.length, set=new Set(dict);\n  const dp=Array(n+1).fill(false); dp[0]=true;\n  for(let i=1;i<=n;i++) for(let j=0;j<i;j++) if(dp[j]&&set.has(s.slice(j,i))){ dp[i]=true; break; }\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:38, type:'dp1d', name:'House Robber II', diff:'Medium',
+    input:[2,3,2], expected:3,
+    desc:'Houses in a circle — cannot rob first and last both. Run House Robber twice.',
+    steps:['Run rob on nums[0..n-2].','Run rob on nums[1..n-1].','Return max of both.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(nums) {\n  const rob=a=>{ let p=0,c=0; for(const x of a){ [p,c]=[c,Math.max(c,p+x)]; } return c; };\n  const n=nums.length; if(n===1) return nums[0];\n  return Math.max(rob(nums.slice(0,n-1)),rob(nums.slice(1)));\n}' },
+
+  { cat:'Dynamic Programming', id:39, type:'dp2d', name:'Partition Equal Subset Sum', diff:'Medium',
+    input:[1,5,11,5], expected:true,
+    desc:'Can the array be partitioned into two equal-sum subsets?',
+    steps:['Total must be even.','0/1 Knapsack with target=total/2.','dp[j]=true if sum j reachable.'],
+    time:'O(n * sum)', space:'O(sum)',
+    starter:'function solve(nums) {\n  const sum=nums.reduce((a,b)=>a+b,0);\n  if(sum%2) return false;\n  const T=sum/2, dp=Array(T+1).fill(false); dp[0]=true;\n  for(const n of nums) for(let j=T;j>=n;j--) dp[j]=dp[j]||dp[j-n];\n  return dp[T];\n}' },
+
+  { cat:'Dynamic Programming', id:40, type:'dp1d', name:'Target Sum', diff:'Medium',
+    input:[1,1,1,1,1], target:3, expected:5,
+    desc:'Count ways to assign + or - to each number to reach target.',
+    steps:['Use dp map of {sum: ways}.','For each num: new dp = combine +num and -num.','Return dp[target].'],
+    time:'O(n * sum)', space:'O(sum)',
+    starter:'function solve(nums, target) {\n  let dp={0:1};\n  for(const n of nums){\n    const nd={};\n    for(const [s,c] of Object.entries(dp)){\n      nd[+s+n]=(nd[+s+n]||0)+c;\n      nd[+s-n]=(nd[+s-n]||0)+c;\n    }\n    dp=nd;\n  }\n  return dp[target]||0;\n}' },
+
+  { cat:'Dynamic Programming', id:41, type:'dp1d', name:'Perfect Squares', diff:'Medium',
+    input:12, expected:3,
+    desc:'Minimum number of perfect squares that sum to n.',
+    steps:['dp[0]=0, dp[i]=Infinity.','For i=1 to n: try each perfect square j*j <= i.','dp[i]=min(dp[i], dp[i-j*j]+1).'],
+    time:'O(n√n)', space:'O(n)',
+    starter:'function solve(n) {\n  const dp=Array(n+1).fill(Infinity); dp[0]=0;\n  for(let i=1;i<=n;i++) for(let j=1;j*j<=i;j++) dp[i]=Math.min(dp[i],dp[i-j*j]+1);\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:42, type:'dp2d', name:'Minimum Path Sum', diff:'Medium',
+    input:[[1,3,1],[1,5,1],[4,2,1]], expected:7,
+    desc:'Find path from top-left to bottom-right minimizing sum (move right or down).',
+    steps:['Init first row and column with cumulative sums.','dp[i][j]=grid[i][j]+min(dp[i-1][j], dp[i][j-1]).','Return dp[m-1][n-1].'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(grid) {\n  const m=grid.length, n=grid[0].length;\n  const dp=grid.map(r=>[...r]);\n  for(let j=1;j<n;j++) dp[0][j]+=dp[0][j-1];\n  for(let i=1;i<m;i++) dp[i][0]+=dp[i-1][0];\n  for(let i=1;i<m;i++) for(let j=1;j<n;j++) dp[i][j]+=Math.min(dp[i-1][j],dp[i][j-1]);\n  return dp[m-1][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:43, type:'dp2d', name:'Triangle', diff:'Medium',
+    input:[[2],[3,4],[6,5,7],[4,1,8,3]], expected:11,
+    desc:'Minimum path sum from top to bottom of triangle.',
+    steps:['Start from bottom row.','dp[j]=triangle[i][j]+min(dp[j], dp[j+1]).','Return dp[0].'],
+    time:'O(n²)', space:'O(n)',
+    starter:'function solve(triangle) {\n  const dp=[...triangle[triangle.length-1]];\n  for(let i=triangle.length-2;i>=0;i--) for(let j=0;j<=i;j++) dp[j]=triangle[i][j]+Math.min(dp[j],dp[j+1]);\n  return dp[0];\n}' },
+
+  { cat:'Dynamic Programming', id:44, type:'dp2d', name:'Edit Distance', diff:'Medium',
+    input:["horse","ros"], expected:3,
+    desc:'Minimum edit operations (insert, delete, replace) to convert word1 to word2.',
+    steps:['dp[i][j]=edits to convert w1[0..i-1] to w2[0..j-1].','If chars match: dp[i][j]=dp[i-1][j-1].','Else: 1+min(replace, insert, delete).'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [a,b]=input, m=a.length, n=b.length;\n  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i||j?i?j?0:i:j:0));\n  for(let i=0;i<=m;i++) dp[i][0]=i;\n  for(let j=0;j<=n;j++) dp[0][j]=j;\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);\n  return dp[m][n];\n}' },
+
+  { cat:'Dynamic Programming', id:45, type:'dp2d', name:'Maximal Square', diff:'Medium',
+    input:[["1","0","1","0"],["1","0","1","1"],["1","1","1","1"]], expected:4,
+    desc:'Find the largest square of 1s in a binary matrix. Return its area.',
+    steps:['dp[i][j]=side length of largest square ending at (i,j).','If matrix[i][j]="1": dp[i][j]=min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])+1.','Track max side.'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(matrix) {\n  const m=matrix.length, n=matrix[0].length;\n  let max=0;\n  const dp=Array.from({length:m},()=>Array(n).fill(0));\n  for(let i=0;i<m;i++) for(let j=0;j<n;j++){\n    if(matrix[i][j]==="1"){\n      dp[i][j]=i&&j?Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])+1:1;\n      max=Math.max(max,dp[i][j]);\n    }\n  }\n  return max*max;\n}' },
+
+  { cat:'Dynamic Programming', id:46, type:'dp2d', name:'Longest Palindromic Subsequence', diff:'Medium',
+    input:"bbbab", expected:4,
+    desc:'Length of longest subsequence of s that is a palindrome.',
+    steps:['dp[i][j]=LPS of s[i..j].','Base: dp[i][i]=1.','If s[i]==s[j]: dp[i][j]=dp[i+1][j-1]+2.','Else: max(dp[i+1][j], dp[i][j-1]).'],
+    time:'O(n²)', space:'O(n²)',
+    starter:'function solve(s) {\n  const n=s.length;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let i=0;i<n;i++) dp[i][i]=1;\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1;\n    dp[i][j]=s[i]===s[j]?(len===2?2:dp[i+1][j-1]+2):Math.max(dp[i+1][j],dp[i][j-1]);\n  }\n  return dp[0][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:47, type:'dp2d', name:'Palindromic Substrings Count', diff:'Medium',
+    input:"aaa", expected:6,
+    desc:'Count palindromic substrings. Expand around center or use DP table.',
+    steps:['dp[i][j]=true if s[i..j] is palindrome.','Base: single chars true; adjacent equal chars.','Expand: s[i]==s[j] && dp[i+1][j-1].','Count all trues.'],
+    time:'O(n²)', space:'O(n²)',
+    starter:'function solve(s) {\n  const n=s.length; let count=0;\n  const dp=Array.from({length:n},()=>Array(n).fill(false));\n  for(let i=n-1;i>=0;i--) for(let j=i;j<n;j++){\n    dp[i][j]=(s[i]===s[j])&&(j-i<=2||dp[i+1][j-1]);\n    if(dp[i][j]) count++;\n  }\n  return count;\n}' },
+
+  { cat:'Dynamic Programming', id:48, type:'dp1d', name:'Maximum Product Subarray', diff:'Medium',
+    input:[2,3,-2,4], expected:6,
+    desc:'Find contiguous subarray with largest product. Track max and min.',
+    steps:['Maintain curMax and curMin.','curMax=max(n, curMax*n, curMin*n).','curMin=min(n, ...).','Track global max.'],
+    time:'O(n)', space:'O(1)',
+    starter:'function solve(nums) {\n  let max=nums[0], min=nums[0], res=nums[0];\n  for(let i=1;i<nums.length;i++){\n    const n=nums[i], tmp=max;\n    max=Math.max(n,max*n,min*n); min=Math.min(n,tmp*n,min*n);\n    res=Math.max(res,max);\n  }\n  return res;\n}' },
+
+  { cat:'Dynamic Programming', id:49, type:'dp2d', name:'Interleaving String', diff:'Medium',
+    input:["aab","axy","aaxaby"], expected:true,
+    desc:'Check if s3 is formed by interleaving s1 and s2.',
+    steps:['dp[i][j]=true if s3[0..i+j-1] formed from s1[0..i-1] and s2[0..j-1].','Transition from dp[i-1][j] and dp[i][j-1].'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [s1,s2,s3]=input, m=s1.length, n=s2.length;\n  if(m+n!==s3.length) return false;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));\n  dp[0][0]=true;\n  for(let i=1;i<=m;i++) dp[i][0]=dp[i-1][0]&&s1[i-1]===s3[i-1];\n  for(let j=1;j<=n;j++) dp[0][j]=dp[0][j-1]&&s2[j-1]===s3[j-1];\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=(dp[i-1][j]&&s1[i-1]===s3[i+j-1])||(dp[i][j-1]&&s2[j-1]===s3[i+j-1]);\n  return dp[m][n];\n}' },
+
+  { cat:'Dynamic Programming', id:50, type:'dp2d', name:'Distinct Subsequences', diff:'Medium',
+    input:["rabbbit","rabbit"], expected:3,
+    desc:'Count distinct ways subsequences of s equal t.',
+    steps:['dp[i][j]=ways s[0..i-1] contains t[0..j-1] as subseq.','If s[i-1]==t[j-1]: dp[i][j]=dp[i-1][j-1]+dp[i-1][j].','Else: dp[i][j]=dp[i-1][j].'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [s,t]=input, m=s.length, n=t.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));\n  for(let i=0;i<=m;i++) dp[i][0]=1;\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=dp[i-1][j]+(s[i-1]===t[j-1]?dp[i-1][j-1]:0);\n  return dp[m][n];\n}' },
+
+  { cat:'Dynamic Programming', id:51, type:'dp2d', name:'Rod Cutting', diff:'Medium',
+    input:[1,5,8,9,10,17,17,20], expected:22,
+    desc:'Maximize revenue by cutting rod of length n (prices given per length).',
+    steps:['dp[j]=max revenue for rod of length j.','For each j: try all cuts i.','dp[j]=max(dp[j], price[i]+dp[j-i-1]).'],
+    time:'O(n²)', space:'O(n)',
+    starter:'function solve(price) {\n  const n=price.length;\n  const dp=Array(n+1).fill(0);\n  for(let j=1;j<=n;j++) for(let i=0;i<j;i++) dp[j]=Math.max(dp[j],price[i]+dp[j-i-1]);\n  return dp[n];\n}' },
+
+  { cat:'Dynamic Programming', id:52, type:'dp2d', name:'Coin Change II (Ways)', diff:'Medium',
+    input:[1,2,5], target:5, expected:4,
+    desc:'Count number of combinations to make amount using coins.',
+    steps:['dp[0]=1, dp[a]=0.','For each coin: for a from coin to amount: dp[a]+=dp[a-coin].','Return dp[amount].'],
+    time:'O(amount * coins)', space:'O(amount)',
+    starter:'function solve(coins, target) {\n  const dp=Array(target+1).fill(0); dp[0]=1;\n  for(const c of coins) for(let a=c;a<=target;a++) dp[a]+=dp[a-c];\n  return dp[target];\n}' },
+
+  { cat:'Dynamic Programming', id:53, type:'dp2d', name:'Matrix Chain Multiplication', diff:'Medium',
+    input:[10,30,5,60], expected:4500,
+    desc:'Find minimum scalar multiplications to multiply chain of matrices.',
+    steps:['dp[i][j]=min cost to multiply matrices i to j.','Try every split k between i and j.','dp[i][j]=min(dp[i][k]+dp[k+1][j]+dims[i]*dims[k+1]*dims[j+1]).'],
+    time:'O(n³)', space:'O(n²)',
+    starter:'function solve(dims) {\n  const n=dims.length-1;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1; dp[i][j]=Infinity;\n    for(let k=i;k<j;k++) dp[i][j]=Math.min(dp[i][j],dp[i][k]+dp[k+1][j]+dims[i]*dims[k+1]*dims[j+1]);\n  }\n  return dp[0][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:54, type:'dp2d', name:'Wildcard Matching', diff:'Hard',
+    input:["adceb","*a*b"], expected:true,
+    desc:'Match string s against pattern p with ? and * wildcards.',
+    steps:['dp[i][j]=s[0..i-1] matches p[0..j-1].','*: dp[i][j]=dp[i-1][j]||dp[i][j-1].','?: dp[i][j]=dp[i-1][j-1].','Char match: dp[i][j]=dp[i-1][j-1].'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [s,p]=input, m=s.length, n=p.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));\n  dp[0][0]=true;\n  for(let j=1;j<=n;j++) dp[0][j]=p[j-1]==="*"&&dp[0][j-1];\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){\n    if(p[j-1]==="*") dp[i][j]=dp[i-1][j]||dp[i][j-1];\n    else dp[i][j]=(p[j-1]==="?"||p[j-1]===s[i-1])&&dp[i-1][j-1];\n  }\n  return dp[m][n];\n}' },
+
+  { cat:'Dynamic Programming', id:55, type:'dp2d', name:'Regular Expression Matching', diff:'Hard',
+    input:["aa","a*"], expected:true,
+    desc:'Implement regex matching with . and * operators.',
+    steps:['dp[i][j]=s[0..i-1] matches p[0..j-1].','*: dp[i][j]=dp[i][j-2] (zero) or dp[i-1][j] if prev matches.','.: matches any char.'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(input) {\n  const [s,p]=input, m=s.length, n=p.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));\n  dp[0][0]=true;\n  for(let j=2;j<=n;j++) if(p[j-1]==="*") dp[0][j]=dp[0][j-2];\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){\n    if(p[j-1]==="*") dp[i][j]=dp[i][j-2]||((p[j-2]==="."||p[j-2]===s[i-1])&&dp[i-1][j]);\n    else dp[i][j]=(p[j-1]==="."||p[j-1]===s[i-1])&&dp[i-1][j-1];\n  }\n  return dp[m][n];\n}' },
+
+  { cat:'Dynamic Programming', id:56, type:'dp2d', name:'Burst Balloons', diff:'Hard',
+    input:[3,1,5,8], expected:167,
+    desc:'Burst all balloons to maximize coins. Padded with 1 on both ends.',
+    steps:['Add 1 to both ends.','dp[i][j]=max coins bursting all between i and j.','Try each k as last burst in [i,j].'],
+    time:'O(n³)', space:'O(n²)',
+    starter:'function solve(nums) {\n  const a=[1,...nums,1], n=a.length;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let len=2;len<n;len++) for(let i=0;i<n-len;i++){\n    const j=i+len;\n    for(let k=i+1;k<j;k++) dp[i][j]=Math.max(dp[i][j],dp[i][k]+a[i]*a[k]*a[j]+dp[k][j]);\n  }\n  return dp[0][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:57, type:'dp2d', name:'Palindrome Partitioning II', diff:'Hard',
+    input:"aab", expected:1,
+    desc:'Minimum cuts to partition string into palindromes.',
+    steps:['isPalin[i][j]: precompute palindrome table.','dp[i]=min cuts for s[0..i].','dp[i]=min(dp[j-1]+1) where s[j..i] is palindrome.'],
+    time:'O(n²)', space:'O(n²)',
+    starter:'function solve(s) {\n  const n=s.length;\n  const p=Array.from({length:n},()=>Array(n).fill(false));\n  for(let i=n-1;i>=0;i--) for(let j=i;j<n;j++) p[i][j]=(s[i]===s[j])&&(j-i<=2||p[i+1][j-1]);\n  const dp=Array(n).fill(0);\n  for(let i=0;i<n;i++){\n    if(p[0][i]){ dp[i]=0; continue; }\n    dp[i]=Infinity;\n    for(let j=1;j<=i;j++) if(p[j][i]) dp[i]=Math.min(dp[i],dp[j-1]+1);\n  }\n  return dp[n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:58, type:'dp1d', name:'Longest Valid Parentheses', diff:'Hard',
+    input:")()())", expected:4,
+    desc:'Length of longest valid parentheses substring.',
+    steps:['dp[i]=length of longest valid ending at i.','If s[i]=")": check s[i-1]="(" or s[i-dp[i-1]-1]="(". ','Update dp[i] accordingly.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(s) {\n  const n=s.length, dp=Array(n).fill(0); let max=0;\n  for(let i=1;i<n;i++){\n    if(s[i]===")"){\n      if(s[i-1]==="(") dp[i]=(i>=2?dp[i-2]:0)+2;\n      else if(dp[i-1]>0){\n        const k=i-dp[i-1]-1;\n        if(k>=0&&s[k]==="(") dp[i]=dp[i-1]+2+(k>0?dp[k-1]:0);\n      }\n      max=Math.max(max,dp[i]);\n    }\n  }\n  return max;\n}' },
+
+  { cat:'Dynamic Programming', id:59, type:'dp2d', name:'Dungeon Game', diff:'Hard',
+    input:[[-2,-3,3],[-5,-10,1],[10,30,-5]], expected:7,
+    desc:'Minimum initial health to rescue princess. Traverse grid top-left to bottom-right.',
+    steps:['Work backwards from bottom-right.','dp[i][j]=min health needed entering cell (i,j).','dp[i][j]=max(1, min(dp[i+1][j],dp[i][j+1])-dungeon[i][j]).'],
+    time:'O(mn)', space:'O(mn)',
+    starter:'function solve(dungeon) {\n  const m=dungeon.length, n=dungeon[0].length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(Infinity));\n  dp[m][n-1]=dp[m-1][n]=1;\n  for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--) dp[i][j]=Math.max(1,Math.min(dp[i+1][j],dp[i][j+1])-dungeon[i][j]);\n  return dp[0][0];\n}' },
+
+  { cat:'Dynamic Programming', id:60, type:'dp2d', name:'Egg Drop (2 eggs, 10 floors)', diff:'Hard',
+    input:[2,10], expected:4,
+    desc:'Minimum trials to find critical floor with k eggs and n floors.',
+    steps:['dp[t][k]=max floors checkable with t trials and k eggs.','dp[t][k]=dp[t-1][k-1]+dp[t-1][k]+1.','Find min t where dp[t][k]>=n.'],
+    time:'O(k log n)', space:'O(kn)',
+    starter:'function solve(input) {\n  const [k,n]=input;\n  let t=0; const dp=Array.from({length:n+1},()=>Array(k+1).fill(0));\n  while(dp[t][k]<n){ t++; for(let e=1;e<=k;e++) dp[t][e]=dp[t-1][e-1]+dp[t-1][e]+1; }\n  return t;\n}' },
+
+  { cat:'Dynamic Programming', id:61, type:'dp1d', name:'Russian Doll Envelopes', diff:'Hard',
+    input:[[5,4],[6,4],[6,7],[2,3]], expected:3,
+    desc:'LIS on heights after sorting by width asc, height desc.',
+    steps:['Sort: width asc, height desc.','LIS on heights (strictly increasing).','Patience sorting or O(n²) DP.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(envelopes) {\n  envelopes.sort((a,b)=>a[0]!==b[0]?a[0]-b[0]:b[1]-a[1]);\n  const tails=[];\n  for(const [,h] of envelopes){\n    let lo=0,hi=tails.length;\n    while(lo<hi){ const m=(lo+hi)>>1; tails[m]<h?lo=m+1:hi=m; }\n    tails[lo]=h;\n  }\n  return tails.length;\n}' },
+
+  { cat:'Dynamic Programming', id:62, type:'dp2d', name:'K Inverse Pairs Array', diff:'Hard',
+    input:[3,1], expected:1,
+    desc:'Count permutations of 1..n with exactly k inverse pairs.',
+    steps:['dp[i][j]=count of perms of 1..i with j inverse pairs.','dp[i][j]=sum of dp[i-1][j-t] for t=0..min(j,i-1).','Use prefix sums to optimize.'],
+    time:'O(nk)', space:'O(nk)',
+    starter:'function solve(input) {\n  const [n,k]=input, MOD=1e9+7;\n  const dp=Array.from({length:n+1},()=>Array(k+1).fill(0));\n  dp[0][0]=1;\n  for(let i=1;i<=n;i++){\n    const pre=Array(k+2).fill(0);\n    for(let j=0;j<=k;j++) pre[j+1]=(pre[j]+dp[i-1][j])%MOD;\n    for(let j=0;j<=k;j++) dp[i][j]=(pre[j+1]-pre[Math.max(0,j-i+1)]+MOD)%MOD;\n  }\n  return dp[n][k];\n}' },
+
+  { cat:'Dynamic Programming', id:63, type:'dp2d', name:'Count Palindromic Subsequences', diff:'Hard',
+    input:"bccb", expected:6,
+    desc:'Count distinct palindromic subsequences of length >= 1.',
+    steps:['dp[i][j]=count of distinct palindromic subseqs in s[i..j].','Use character expansion approach.','Handle duplicates carefully.'],
+    time:'O(n²)', space:'O(n²)',
+    starter:'function solve(s) {\n  const n=s.length, MOD=1e9+7;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let i=0;i<n;i++) dp[i][i]=1;\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1;\n    if(s[i]===s[j]) dp[i][j]=(dp[i+1][j]+dp[i][j-1]+1)%MOD;\n    else dp[i][j]=(dp[i+1][j]+dp[i][j-1]-dp[i+1][j-1]+MOD)%MOD;\n  }\n  return dp[0][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:64, type:'dp2d', name:'Strange Printer', diff:'Hard',
+    input:"aaabbb", expected:2,
+    desc:'Minimum turns to print string where each turn prints same character contiguously.',
+    steps:['dp[i][j]=min turns to print s[i..j].','If s[i]==s[k] for k in (i,j]: dp[i][j]=min(dp[i][j], dp[i][k-1]+dp[k][j] - offset).','Use interval DP.'],
+    time:'O(n³)', space:'O(n²)',
+    starter:'function solve(s) {\n  const n=s.length;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let i=0;i<n;i++) dp[i][i]=1;\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1; dp[i][j]=dp[i][j-1]+1;\n    for(let k=i;k<j;k++) if(s[k]===s[j]) dp[i][j]=Math.min(dp[i][j],(k>i?dp[i][k-1]:0)+(k<j?dp[k][j-1]:0)+(k===i?1:0));\n  }\n  return dp[0][n-1];\n}' },
+
+  { cat:'Dynamic Programming', id:65, type:'dp2d', name:'Min Cost to Cut a Stick', diff:'Hard',
+    input:[[7,[1,3,4,5]]], expected:16,
+    desc:'Minimum cost to cut a stick. Cost of cut = current stick length.',
+    steps:['Add 0 and n to cuts, sort.','dp[i][j]=min cost to cut between cuts[i] and cuts[j].','Try every cut k between i and j.'],
+    time:'O(m³)', space:'O(m²)',
+    starter:'function solve(input) {\n  const [n,cuts]=input[0];\n  const c=[0,...cuts,n].sort((a,b)=>a-b), m=c.length;\n  const dp=Array.from({length:m},()=>Array(m).fill(0));\n  for(let len=2;len<m;len++) for(let i=0;i<m-len;i++){\n    const j=i+len; dp[i][j]=Infinity;\n    for(let k=i+1;k<j;k++) dp[i][j]=Math.min(dp[i][j],dp[i][k]+dp[k][j]+c[j]-c[i]);\n  }\n  return dp[0][m-1];\n}' },
+
+  { cat:'Dynamic Programming', id:66, type:'dp2d', name:'Super Egg Drop', diff:'Hard',
+    input:[2,6], expected:3,
+    desc:'Minimum trials to find critical floor with k eggs and n floors.',
+    steps:['Binary search on number of trials.','dp[t][k]=max floors with t trials, k eggs.','Find smallest t where dp[t][k]>=n.'],
+    time:'O(k log n)', space:'O(kn)',
+    starter:'function solve(input) {\n  const [k,n]=input;\n  const dp=Array.from({length:n+1},()=>Array(k+1).fill(0));\n  let t=0;\n  while(dp[t][k]<n){ t++; for(let e=1;e<=k;e++) dp[t][e]=dp[t-1][e-1]+dp[t-1][e]+1; }\n  return t;\n}' },
+
+  { cat:'Dynamic Programming', id:67, type:'dp2d', name:'Cherry Pickup', diff:'Hard',
+    input:[[0,1,-1],[1,0,-1],[1,1,1]], expected:5,
+    desc:'Pick maximum cherries going from top-left to bottom-right and back.',
+    steps:['Two people start at (0,0) simultaneously.','dp[r1][c1][c2]: simulate both moving down together.','Combine paths optimally.'],
+    time:'O(n³)', space:'O(n³)',
+    starter:'function solve(grid) {\n  const n=grid.length;\n  const memo=new Map();\n  function dp(r,c1,c2){\n    const c1r=r+c1-c2<0||r+c1-c2>=n||c1>=n||r>=n?-Infinity:0;\n    if(r===n) return 0;\n    if(grid[r][c1]===-1||grid[r][r+c1-c2]===-1) return -Infinity;\n    const key=`${r},${c1},${c2}`;\n    if(memo.has(key)) return memo.get(key);\n    let cherries=c1===r+c1-c2?grid[r][c1]:grid[r][c1]+grid[r][r+c1-c2];\n    let best=-Infinity;\n    for(const dc1 of [0,1]) for(const dc2 of [0,1]){\n      const nx=dp(r+1,c1+dc1,c2+dc2); if(nx>-Infinity) best=Math.max(best,nx);\n    }\n    const res=best===-Infinity?-Infinity:cherries+best;\n    memo.set(key,res); return res;\n  }\n  return Math.max(0,dp(0,0,0));\n}' },
+
+  { cat:'Dynamic Programming', id:68, type:'dp1d', name:'Maximum Profit Job Scheduling', diff:'Hard',
+    input:[[1,3,50],[2,4,10],[3,5,40],[3,6,70]], expected:120,
+    desc:'Schedule non-overlapping jobs to maximize profit.',
+    steps:['Sort jobs by end time.','dp[i]=max profit using first i jobs.','Binary search for last non-conflicting job.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(jobs) {\n  jobs.sort((a,b)=>a[1]-b[1]);\n  const n=jobs.length, dp=Array(n+1).fill(0);\n  for(let i=1;i<=n;i++){\n    const [s,e,p]=jobs[i-1];\n    let lo=0,hi=i-1;\n    while(lo<hi){ const m=(lo+hi+1)>>1; jobs[m-1][1]<=s?lo=m:hi=m-1; }\n    dp[i]=Math.max(dp[i-1],dp[lo]+p);\n  }\n  return dp[n];\n}' }
+
+];
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let curId = 1, editor, frames = [], curFrame = 0, playing = false, playTimer = null;
+
+/* ══════════════════════════════════════════
+   SIDEBAR BUILD
+══════════════════════════════════════════ */
+function buildSidebar() {
+  const sb = document.getElementById('sidebar');
+  let cat = '';
+  problems.forEach(p => {
+    if (p.cat !== cat) {
+      cat = p.cat;
+      const h = document.createElement('div');
+      h.className = 'cat-section';
+      h.innerHTML = `<div class="cat-name">${cat}</div>`;
+      sb.appendChild(h);
+    }
+    const el = document.createElement('div');
+    el.className = `prob-item diff-${p.diff.toLowerCase()}`;
+    el.id = `nav-${p.id}`;
+    el.innerHTML = `<span class="prob-num">${p.id}</span><span class="prob-name">${p.name}</span><span class="diff-dot"></span>`;
+    el.onclick = () => load(p.id);
+    sb.appendChild(el);
+  });
+}
+
+/* ══════════════════════════════════════════
+   LOAD PROBLEM
+══════════════════════════════════════════ */
+function load(id) {
+  pausePlay();
+  curId = id;
+  const p = problems.find(x => x.id === id);
+
+  document.querySelectorAll('.prob-item').forEach(e => e.classList.remove('active'));
+  document.getElementById(`nav-${id}`).classList.add('active');
+
+  // Description pane
+  document.getElementById('q-title').textContent = p.name;
+  document.getElementById('q-desc').textContent  = p.desc;
+  document.getElementById('q-input').textContent  = JSON.stringify(p.input);
+  document.getElementById('q-output').textContent = JSON.stringify(p.expected);
+  document.getElementById('io-lbl').textContent =
+    p.type === 'graph' ? 'Adjacency List' :
+    p.type === 'tree'  ? 'Tree Array' :
+    p.cat === 'Dynamic Programming' ? 'Input' : 'Input Array';
+
+  const badge = document.getElementById('q-diff');
+  badge.textContent = p.diff;
+  badge.className = `diff-badge badge-${p.diff.toLowerCase()}`;
+
+  if (p.target !== undefined) {
+    document.getElementById('target-blk').style.display = '';
+    document.getElementById('q-target').textContent = p.target;
+  } else {
+    document.getElementById('target-blk').style.display = 'none';
+  }
+
+  // Algorithm pane
+  const steps = p.steps.map((s, i) =>
+    `<li><span class="step-n">${i+1}</span><span>${s}</span></li>`
+  ).join('');
+  document.getElementById('algo-body').innerHTML = `
+    <div class="algo-name">${p.name}</div>
+    <ul class="step-list">${steps}</ul>
+    <div class="complexity-grid">
+      <div class="cx-card"><div class="cx-label">Time</div><div class="cx-val">${p.time}</div></div>
+      <div class="cx-card"><div class="cx-label">Space</div><div class="cx-val">${p.space}</div></div>
+    </div>`;
+
+  // Code
+  if (editor) {
+    const lang = document.getElementById('lang-sel').value;
+    monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : lang);
+    editor.setValue(p.starter);
+  }
+
+  buildFrames(p);
+  curFrame = 0;
+  syncPlaybackUI();
+  setTimeout(() => renderFrame(0), 40);
+}
+
+function changeLang() {
+  const p = problems.find(x => x.id === curId);
+  const lang = document.getElementById('lang-sel').value;
+  if (editor) {
+    monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : lang);
+    editor.setValue(p.starter);
+  }
+}
+
+/* ══════════════════════════════════════════
+   RUN CODE
+══════════════════════════════════════════ */
+function runCode() {
+  pausePlay();
+  const p = problems.find(x => x.id === curId);
+  const lang = document.getElementById('lang-sel').value;
+  const term = document.getElementById('terminal');
+  if (!editor) return;
+
+  term.innerHTML = `<span class="out-run">&gt; Running ${p.name}…</span><br>`;
+  if (lang !== 'javascript') {
+    setTimeout(() => {
+      term.innerHTML += `<span class="out-run">&gt; [${lang}] Syntax OK — live execution requires JavaScript.</span>`;
+    }, 350);
+    return;
+  }
+  try {
+    const copy = JSON.parse(JSON.stringify(p.input));
+    let result;
+    if (p.cat === 'Dynamic Programming') {
+      const fn = new Function('input', 'target', `${editor.getValue()}\nreturn typeof input === 'number' ? solve(input) : solve(input, target);`);
+      result = fn(copy, p.target);
+    } else {
+      const fn = new Function('arr', 'target', `${editor.getValue()}\nreturn solve(arr, target);`);
+      result = fn(copy, p.target);
+    }
+    const ok = JSON.stringify(result) === JSON.stringify(p.expected);
+    term.innerHTML += ok
+      ? `<span class="out-ok">&gt; ✓ Accepted — Output: ${JSON.stringify(result)}</span>`
+      : `<span class="out-err">&gt; ✗ Wrong Answer\n&gt; Expected: ${JSON.stringify(p.expected)}\n&gt; Got:      ${JSON.stringify(result)}</span>`;
+  } catch(e) {
+    term.innerHTML += `<span class="out-err">&gt; Runtime Error: ${e.message}</span>`;
+  }
+}
+
+
+/* ══════════════════════════════════════════
+   DP HELPERS
+══════════════════════════════════════════ */
+function doneColors(dp, upTo) {
+  const c={};
+  for(let i=0;i<=upTo;i++) if(dp[i]!==null&&dp[i]!==undefined) c[i]='done';
+  return c;
+}
+
+function pushDp1d(dp, colors, msg, indexLabels) {
+  frames.push({ vizType:'dp1d', dp:[...dp], colors:{...colors}, msg, indexLabels });
+}
+
+function pushDp2d(dp, colors, rowLabels, colLabels, msg) {
+  frames.push({ vizType:'dp2d', dp:dp.map(r=>[...r]), colors:{...colors}, rowLabels, colLabels, msg });
+}
+
+function renderDp1d(frame, canvas) {
+  canvas.className = 'dp1d-canvas';
+  frame.dp.forEach((val, i) => {
+    const box = document.createElement('div');
+    const state = frame.colors?.[i] || (val === null ? 'empty' : 'done');
+    box.className = `dp-box dp-${state}`;
+    const display = val === null ? '?' : val === Infinity ? '∞' : val;
+    box.innerHTML = `<div class="dp-box-val">${display}</div><div class="dp-box-lbl">${frame.indexLabels?.[i] ?? 'dp['+i+']'}</div>`;
+    canvas.appendChild(box);
+  });
+}
+
+function renderDp2d(frame, canvas) {
+  canvas.className = 'dp2d-canvas';
+  const { dp, rowLabels, colLabels, colors } = frame;
+  const table = document.createElement('div');
+  table.className = 'dp2d-table';
+  const hdrRow = document.createElement('div');
+  hdrRow.className = 'dp2d-row';
+  const corner = document.createElement('div');
+  corner.className = 'dp2d-cell dp2d-hdr';
+  corner.textContent = '';
+  hdrRow.appendChild(corner);
+  (colLabels || []).forEach(lbl => {
+    const c = document.createElement('div');
+    c.className = 'dp2d-cell dp2d-hdr';
+    c.textContent = lbl;
+    hdrRow.appendChild(c);
+  });
+  table.appendChild(hdrRow);
+  dp.forEach((row, r) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'dp2d-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'dp2d-cell dp2d-hdr';
+    lbl.textContent = rowLabels?.[r] ?? r;
+    rowEl.appendChild(lbl);
+    row.forEach((val, c) => {
+      const cell = document.createElement('div');
+      const key = `${r}_${c}`;
+      const state = colors?.[key] || (val === null ? 'empty' : 'done');
+      cell.className = `dp2d-cell dp2d-${state}`;
+      cell.textContent = val === null ? '' : val === Infinity ? '∞' : val;
+      rowEl.appendChild(cell);
+    });
+    table.appendChild(rowEl);
+  });
+  canvas.appendChild(table);
+}
+
+/* ══════════════════════════════════════════
+   FRAME BUILDER
+══════════════════════════════════════════ */
+function pushFrame(arr, colors, msg) {
+  frames.push({ arr: JSON.parse(JSON.stringify(arr)), colors: { ...colors }, msg });
+}
+
+function buildFrames(p) {
+  frames = [];
+  const arr = JSON.parse(JSON.stringify(p.input));
+
+  /* ── TREE ── */
+  if (p.type === 'tree') {
+    pushFrame(arr, {}, 'Initial tree structure.');
+
+    if (p.name === 'Inorder Traversal') {
+      const v = {};
+      (function go(i) {
+        if (i >= arr.length || arr[i] == null) return;
+        pushFrame(arr, { ...v, [i]: 'comparing' }, `Traversing left subtree of node ${arr[i]}.`);
+        go(2*i+1);
+        v[i] = 'sorted';
+        pushFrame(arr, { ...v }, `Visiting node ${arr[i]}.`);
+        go(2*i+2);
+      })(0);
+
+    } else if (p.name === 'Preorder Traversal') {
+      const v = {};
+      (function go(i) {
+        if (i >= arr.length || arr[i] == null) return;
+        v[i] = 'comparing';
+        pushFrame(arr, { ...v }, `Visiting node ${arr[i]} before its children.`);
+        v[i] = 'sorted';
+        go(2*i+1); go(2*i+2);
+      })(0);
+
+    } else if (p.name === 'Postorder Traversal') {
+      const v = {};
+      (function go(i) {
+        if (i >= arr.length || arr[i] == null) return;
+        pushFrame(arr, { ...v, [i]: 'comparing' }, `Exploring children of node ${arr[i]} first.`);
+        go(2*i+1); go(2*i+2);
+        v[i] = 'sorted';
+        pushFrame(arr, { ...v }, `Visiting node ${arr[i]} after both children.`);
+      })(0);
+
+    } else if (p.name === 'Level Order BFS') {
+      let q = [0], v = {};
+      while (q.length) {
+        const lvl = [...q];
+        const lc  = { ...v };
+        lvl.forEach(i => { if (i < arr.length) lc[i] = 'comparing'; });
+        pushFrame(arr, lc, `Processing level: [${lvl.map(i => arr[i]).join(', ')}].`);
+        q = [];
+        lvl.forEach(i => {
+          if (i < arr.length && arr[i] != null) {
+            v[i] = 'sorted';
+            if (2*i+1 < arr.length) q.push(2*i+1);
+            if (2*i+2 < arr.length) q.push(2*i+2);
+          }
+        });
+      }
+      pushFrame(arr, { ...v }, 'Level-order traversal complete.');
+
+    } else if (p.name === 'Max Depth') {
+      const dc = {};
+      (function go(i, d) {
+        if (i >= arr.length || arr[i] == null) return 0;
+        dc[i] = 'comparing';
+        pushFrame(arr, { ...dc }, `Node ${arr[i]} is at depth ${d}.`);
+        const l = go(2*i+1, d+1), r = go(2*i+2, d+1);
+        dc[i] = 'sorted';
+        pushFrame(arr, { ...dc }, `Max depth through node ${arr[i]}: ${1 + Math.max(l, r)}.`);
+        return 1 + Math.max(l, r);
+      })(0, 1);
+      pushFrame(arr, { ...dc }, `Maximum depth of the tree: ${p.expected}.`);
+    }
+
+  /* ── GRAPH ── */
+  } else if (p.type === 'graph') {
+    const nodes = arr.map((_, i) => i);
+    pushFrame(nodes, {}, 'Initial graph state.');
+
+    if (p.name === 'BFS Traversal') {
+      const vis = new Set([0]), q = [0], c = { 0: 'comparing' };
+      pushFrame(nodes, { ...c }, 'BFS starts at node 0. Enqueuing node 0.');
+      while (q.length) {
+        const u = q.shift(); c[u] = 'sorted';
+        pushFrame(nodes, { ...c }, `Dequeued node ${u}. Recording it.`);
+        for (const v of arr[u]) {
+          if (!vis.has(v)) {
+            vis.add(v); q.push(v); c[v] = 'comparing';
+            pushFrame(nodes, { ...c }, `Found unvisited neighbor ${v}. Enqueuing.`);
+          }
+        }
+      }
+
+    } else if (p.name === 'DFS Traversal') {
+      const vis = new Set(), c = {};
+      (function dfs(u) {
+        vis.add(u); c[u] = 'comparing';
+        pushFrame(nodes, { ...c }, `DFS: entering node ${u}.`);
+        c[u] = 'sorted';
+        for (const v of arr[u]) {
+          if (!vis.has(v)) {
+            pushFrame(nodes, { ...c, [v]: 'comparing' }, `Exploring edge ${u} → ${v}.`);
+            dfs(v);
+          }
+        }
+        pushFrame(nodes, { ...c }, `Backtracking from node ${u}.`);
+      })(0);
+
+    } else if (p.name === 'Path Exists') {
+      const vis = new Set([0]), q = [0], c = { 0: 'comparing' };
+      let found = false;
+      pushFrame(nodes, { ...c }, `Searching for path from 0 to target ${p.target}.`);
+      while (q.length && !found) {
+        const u = q.shift(); c[u] = 'sorted';
+        pushFrame(nodes, { ...c }, `Checking node ${u}.`);
+        if (u === p.target) {
+          c[u] = 'swapping';
+          pushFrame(nodes, { ...c }, `Target ${p.target} reached! Path exists.`);
+          found = true; break;
+        }
+        for (const v of arr[u]) {
+          if (!vis.has(v)) {
+            vis.add(v); q.push(v); c[v] = 'comparing';
+            pushFrame(nodes, { ...c }, `Enqueuing neighbor ${v}.`);
+          }
+        }
+      }
+      if (!found) pushFrame(nodes, { ...c }, `Traversal complete. Node ${p.target} is unreachable.`);
+
+    } else if (p.name === 'Connected Components') {
+      const vis = new Set(), c = {}; let count = 0;
+      const cols = ['sorted', 'comparing', 'swapping'];
+      for (let i = 0; i < nodes.length; i++) {
+        if (!vis.has(i)) {
+          count++;
+          const col = cols[(count - 1) % cols.length];
+          pushFrame(nodes, { ...c }, `Starting component ${count} from node ${i}.`);
+          (function dfs(u) {
+            vis.add(u); c[u] = col;
+            pushFrame(nodes, { ...c }, `Component ${count}: marking node ${u}.`);
+            arr[u].forEach(v => { if (!vis.has(v)) dfs(v); });
+          })(i);
+        }
+      }
+      pushFrame(nodes, { ...c }, `Found ${count} connected components.`);
+
+    } else if (p.name === 'Cycle Detection') {
+      const vis = new Set(), c = {}; let cycled = false;
+      (function dfs(u, par) {
+        if (cycled) return;
+        vis.add(u); c[u] = 'comparing';
+        pushFrame(nodes, { ...c }, `DFS at node ${u}, parent: ${par}.`);
+        for (const v of arr[u]) {
+          if (cycled) return;
+          if (!vis.has(v)) { dfs(v, u); }
+          else if (v !== par) {
+            cycled = true; c[u] = 'swapping'; c[v] = 'swapping';
+            pushFrame(nodes, { ...c }, `Cycle detected! Edge ${u}→${v} revisits visited node.`);
+            return;
+          }
+        }
+        if (!cycled) c[u] = 'sorted';
+      })(0, -1);
+      if (!cycled) {
+        const fc = {}; nodes.forEach((_, i) => { fc[i] = 'sorted'; });
+        pushFrame(nodes, fc, 'No cycle found in the graph.');
+      }
+
+    } else {
+      const fc = {}; nodes.forEach((_, i) => { fc[i] = 'sorted'; });
+      pushFrame(nodes, fc, 'Algorithm complete.');
+    }
+
+  /* ── ARRAY ── */
+  } else if (p.type === 'array') {
+    pushFrame(arr, {}, `Input: ${JSON.stringify(arr)}.`);
+
+    if (p.name === 'Linear Search') {
+      for (let i = 0; i < arr.length; i++) {
+        pushFrame(arr, { [i]: 'comparing' }, `Index ${i}: checking value ${arr[i]}.`);
+        if (arr[i] === p.target) { pushFrame(arr, { [i]: 'sorted' }, `Found target ${p.target} at index ${i}.`); break; }
+        pushFrame(arr, { [i]: 'discarded' }, `${arr[i]} ≠ ${p.target}. Moving on.`);
+      }
+
+    } else if (p.name === 'Binary Search') {
+      let l = 0, r = arr.length - 1;
+      while (l <= r) {
+        const mid = (l + r) >> 1;
+        const c = {};
+        for (let i = 0; i < arr.length; i++) if (i < l || i > r) c[i] = 'discarded';
+        c[mid] = 'comparing';
+        pushFrame(arr, c, `L=${l}, R=${r}. Mid index=${mid}, value=${arr[mid]}.`);
+        if (arr[mid] === p.target) { c[mid] = 'sorted'; pushFrame(arr, c, `Found target ${p.target} at index ${mid}.`); break; }
+        else if (arr[mid] < p.target) l = mid + 1; else r = mid - 1;
+      }
+
+    } else if (p.name === 'Bubble Sort') {
+      const ss = new Set();
+      for (let i = 0; i < arr.length; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+          const c = {}; ss.forEach(x => { c[x] = 'sorted'; });
+          c[j] = 'comparing'; c[j+1] = 'comparing';
+          pushFrame(arr, c, `Comparing ${arr[j]} and ${arr[j+1]}.`);
+          if (arr[j] > arr[j+1]) {
+            c[j] = 'swapping'; c[j+1] = 'swapping';
+            pushFrame(arr, c, `${arr[j]} > ${arr[j+1]}. Swapping.`);
+            [arr[j], arr[j+1]] = [arr[j+1], arr[j]];
+          }
+        }
+        ss.add(arr.length - 1 - i);
+      }
+      const fc = {}; ss.forEach(x => { fc[x] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
+
+    } else if (p.name === 'Selection Sort') {
+      const ss = new Set();
+      for (let i = 0; i < arr.length; i++) {
+        let mi = i; const c = {}; ss.forEach(x => { c[x] = 'sorted'; }); c[mi] = 'swapping';
+        for (let j = i + 1; j < arr.length; j++) {
+          pushFrame(arr, { ...c, [j]: 'comparing' }, `Comparing ${arr[j]} with current min ${arr[mi]}.`);
+          if (arr[j] < arr[mi]) { delete c[mi]; mi = j; c[mi] = 'swapping'; }
+        }
+        if (mi !== i) {
+          pushFrame(arr, { ...c, [i]: 'swapping' }, `Swapping min ${arr[mi]} to position ${i}.`);
+          [arr[i], arr[mi]] = [arr[mi], arr[i]];
+        }
+        ss.add(i);
+      }
+      const fc = {}; ss.forEach(x => { fc[x] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
+
+    } else if (p.name === 'Insertion Sort') {
+      const ss = new Set([0]);
+      for (let i = 1; i < arr.length; i++) {
+        let key = arr[i], j = i - 1;
+        const c = {}; ss.forEach(x => { c[x] = 'sorted'; }); c[i] = 'comparing';
+        pushFrame(arr, c, `Inserting key ${key} into sorted portion.`);
+        while (j >= 0 && arr[j] > key) {
+          pushFrame(arr, { ...c, [j]: 'swapping', [j+1]: 'swapping' }, `Shifting ${arr[j]} right.`);
+          arr[j+1] = arr[j]; j--;
+        }
+        arr[j+1] = key; ss.add(i);
+        const dc = {}; ss.forEach(x => { dc[x] = 'sorted'; });
+        pushFrame(arr, dc, `Placed ${key} at index ${j+1}.`);
+      }
+      const fc = {}; ss.forEach(x => { fc[x] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
+
+    } else if (p.name === 'Quick Sort') {
+      const ss = new Set();
+      (function qs(lo, hi) {
+        if (lo >= hi) { if (lo === hi) ss.add(lo); return; }
+        const pivot = arr[hi]; let i = lo - 1;
+        for (let j = lo; j < hi; j++) {
+          const c = {}; ss.forEach(x => { c[x] = 'sorted'; }); c[hi] = 'swapping'; c[j] = 'comparing';
+          pushFrame(arr, c, `Pivot=${pivot}. Comparing element ${arr[j]} at [${j}].`);
+          if (arr[j] < pivot) {
+            i++; [arr[i], arr[j]] = [arr[j], arr[i]];
+            const sc = {}; ss.forEach(x => { sc[x] = 'sorted'; }); sc[i] = 'swapping'; sc[j] = 'swapping'; sc[hi] = 'comparing';
+            pushFrame(arr, sc, `${arr[i]} < pivot. Swapping into left partition.`);
+          }
+        }
+        [arr[i+1], arr[hi]] = [arr[hi], arr[i+1]];
+        ss.add(i+1);
+        const pc = {}; ss.forEach(x => { pc[x] = 'sorted'; });
+        pushFrame(arr, pc, `Pivot ${arr[i+1]} placed at its final position [${i+1}].`);
+        qs(lo, i); qs(i+2, hi);
+      })(0, arr.length - 1);
+      const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
+
+    } else if (p.name === 'Heap Sort') {
+      const ss = new Set();
+      function heapify(n, i) {
+        let x = i, l = 2*i+1, r = 2*i+2;
+        if (l < n && arr[l] > arr[x]) x = l;
+        if (r < n && arr[r] > arr[x]) x = r;
+        const c = {}; ss.forEach(s => { c[s] = 'sorted'; }); c[i] = 'comparing';
+        if (l < n) c[l] = 'comparing';
+        if (r < n && !ss.has(r)) c[r] = 'comparing';
+        pushFrame(arr, c, `Heapify at [${i}], value=${arr[i]}.`);
+        if (x !== i) {
+          const sc = {}; ss.forEach(s => { sc[s] = 'sorted'; }); sc[i] = 'swapping'; sc[x] = 'swapping';
+          pushFrame(arr, sc, `Swapping ${arr[i]} ↔ ${arr[x]} to restore heap.`);
+          [arr[i], arr[x]] = [arr[x], arr[i]]; heapify(n, x);
+        }
+      }
+      for (let i = Math.floor(arr.length/2)-1; i >= 0; i--) heapify(arr.length, i);
+      const hc = {}; arr.forEach((_, i) => { hc[i] = 'comparing'; });
+      pushFrame(arr, hc, 'Max heap built. Root holds the maximum.');
+      for (let i = arr.length-1; i > 0; i--) {
+        const sc = {}; ss.forEach(s => { sc[s] = 'sorted'; }); sc[0] = 'swapping'; sc[i] = 'swapping';
+        pushFrame(arr, sc, `Moving max ${arr[0]} to position [${i}].`);
+        [arr[0], arr[i]] = [arr[i], arr[0]]; ss.add(i); heapify(i, 0);
+      }
+      ss.add(0);
+      const fc = {}; ss.forEach(x => { fc[x] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
+
+    } else if (p.name === 'Merge Sort') {
+      (function ms(lo, hi) {
+        if (lo >= hi) return;
+        const mid = (lo + hi) >> 1;
+        const c = {}; for (let i = lo; i <= hi; i++) c[i] = 'comparing';
+        pushFrame(arr, c, `Dividing [${lo}..${hi}] at midpoint ${mid}.`);
+        ms(lo, mid); ms(mid+1, hi);
+        const L = arr.slice(lo, mid+1), R = arr.slice(mid+1, hi+1);
+        let k = lo, li = 0, ri = 0;
+        while (li < L.length && ri < R.length) {
+          const mc = {}; for (let i = lo; i <= hi; i++) mc[i] = 'comparing';
+          pushFrame(arr, mc, `Merging: comparing ${L[li]} and ${R[ri]}.`);
+          arr[k++] = L[li] <= R[ri] ? L[li++] : R[ri++];
+        }
+        while (li < L.length) arr[k++] = L[li++];
+        while (ri < R.length) arr[k++] = R[ri++];
+        const mc = {}; for (let i = lo; i <= hi; i++) mc[i] = 'sorted';
+        pushFrame(arr, mc, `Merged [${lo}..${hi}]: [${arr.slice(lo, hi+1).join(', ')}].`);
+      })(0, arr.length - 1);
+      const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
+
+    } else {
+      arr.sort((a, b) => a - b);
+      const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; });
+      pushFrame(arr, fc, 'Algorithm complete.');
+    }
+  /* ── DYNAMIC PROGRAMMING ── */
+  } else if (p.cat === 'Dynamic Programming') {
+    const pid = p.id;
+
+    if (pid === 19) { // Fibonacci
+      const n = p.input;
+      const dp = Array(n+1).fill(null);
+      const labels = Array.from({length:n+1},(_,i)=>'dp['+i+']');
+      dp[0]=0; pushDp1d(dp,{0:'base'},'Base case: dp[0] = 0.',labels);
+      if(n>=1){dp[1]=1;pushDp1d(dp,{0:'done',1:'base'},'Base case: dp[1] = 1.',labels);}
+      for(let i=2;i<=n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'Computing dp['+i+'] = dp['+(i-1)+']('+dp[i-1]+') + dp['+(i-2)+']('+dp[i-2]+').',labels);
+        dp[i]=dp[i-1]+dp[i-2];
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+'.',labels);
+      }
+      const fc={}; for(let i=0;i<=n;i++) fc[i]=i===n?'res':'done';
+      pushDp1d(dp,fc,'Answer: Fibonacci('+n+') = '+dp[n]+'.',labels);
+
+    } else if (pid === 20) { // Climbing Stairs
+      const n = p.input;
+      const dp = Array(n+1).fill(null);
+      const labels = Array.from({length:n+1},(_,i)=>'stairs['+i+']');
+      dp[0]=1; pushDp1d(dp,{0:'base'},'Base: 1 way to stay at stair 0.',labels);
+      if(n>=1){dp[1]=1;pushDp1d(dp,{0:'done',1:'base'},'Base: 1 way to reach stair 1.',labels);}
+      for(let i=2;i<=n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'dp['+i+'] = dp['+(i-1)+']('+dp[i-1]+') + dp['+(i-2)+']('+dp[i-2]+').',labels);
+        dp[i]=dp[i-1]+dp[i-2];
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+' ways.',labels);
+      }
+      const fc={}; for(let i=0;i<=n;i++) fc[i]=i===n?'res':'done';
+      pushDp1d(dp,fc,'Answer: '+dp[n]+' ways to climb '+n+' stairs.',labels);
+
+    } else if (pid === 21) { // Min Cost Climbing Stairs
+      const cost = p.input;
+      const n = cost.length;
+      const dp = [...cost];
+      const labels = cost.map((_,i)=>'cost['+i+']');
+      const c0={}; cost.forEach((_,i)=>c0[i]='base');
+      pushDp1d(dp,c0,'Initial cost array.',labels);
+      for(let i=2;i<n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'dp['+i+'] = cost['+i+']('+cost[i]+') + min(dp['+(i-1)+']='+dp[i-1]+', dp['+(i-2)+']='+dp[i-2]+').',labels);
+        dp[i]=cost[i]+Math.min(dp[i-1],dp[i-2]);
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+'.',labels);
+      }
+      const ans=Math.min(dp[n-1],dp[n-2]);
+      const fc={}; dp.forEach((_,i)=>fc[i]='done');
+      pushDp1d(dp,fc,'Answer: min(dp['+(n-1)+']='+dp[n-1]+', dp['+(n-2)+']='+dp[n-2]+') = '+ans+'.',labels);
+
+    } else if (pid === 22) { // House Robber
+      const nums = p.input;
+      const n = nums.length;
+      const dp = [...nums];
+      const labels = nums.map((_,i)=>'dp['+i+']');
+      dp[0]=nums[0]; pushDp1d(dp,{0:'base'},'dp[0] = '+dp[0]+' (rob house 0).',labels);
+      if(n>1){dp[1]=Math.max(nums[0],nums[1]); pushDp1d(dp,{0:'done',1:'base'},'dp[1] = max('+nums[0]+','+nums[1]+') = '+dp[1]+'.',labels);}
+      for(let i=2;i<n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'dp['+i+'] = max(dp['+(i-1)+']='+dp[i-1]+', dp['+(i-2)+']+nums['+i+']='+dp[i-2]+'+'+nums[i]+').',labels);
+        dp[i]=Math.max(dp[i-1],dp[i-2]+nums[i]);
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n-1?'res':'done');
+      pushDp1d(dp,fc,'Max rob = '+dp[n-1]+'.',labels);
+
+    } else if (pid === 23) { // Stock
+      const prices = p.input;
+      const dpMin = prices.map(()=>null);
+      const dpProfit = prices.map(()=>null);
+      const labels = prices.map((_,i)=>'day '+i);
+      let minP=Infinity, profit=0;
+      for(let i=0;i<prices.length;i++){
+        minP=Math.min(minP,prices[i]);
+        dpMin[i]=minP; dpProfit[i]=Math.max(profit,prices[i]-minP);
+        profit=dpProfit[i];
+        const c={};
+        for(let j=0;j<i;j++) c[j]='done';
+        c[i]='cur';
+        pushDp1d(dpProfit,c,'Day '+i+': price='+prices[i]+', minSoFar='+minP+', profit='+dpProfit[i]+'.',labels);
+      }
+      const fc={}; dpProfit.forEach((_,i)=>fc[i]=i===prices.length-1?'res':'done');
+      pushDp1d(dpProfit,fc,'Max profit = '+profit+'.',labels);
+
+    } else if (pid === 24) { // Kadane
+      const nums = p.input;
+      const dp = nums.map(()=>null);
+      const labels = nums.map((_,i)=>'dp['+i+']');
+      dp[0]=nums[0]; pushDp1d(dp,{0:'base'},'dp[0] = '+dp[0]+'.',labels);
+      let best=dp[0];
+      for(let i=1;i<nums.length;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'max(nums['+i+']='+nums[i]+', dp['+(i-1)+']+nums['+i+']='+dp[i-1]+'+'+nums[i]+').',labels);
+        dp[i]=Math.max(nums[i],dp[i-1]+nums[i]);
+        best=Math.max(best,dp[i]);
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+'. Best so far='+best+'.',labels);
+      }
+      const maxI=dp.indexOf(best);
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===maxI?'res':'done');
+      pushDp1d(dp,fc,'Maximum subarray sum = '+best+'.',labels);
+
+    } else if (pid === 25) { // Tribonacci
+      const n = p.input;
+      const dp = Array(n+1).fill(null);
+      const labels = Array.from({length:n+1},(_,i)=>'T('+i+')');
+      dp[0]=0; pushDp1d(dp,{0:'base'},'T(0)=0.',labels);
+      if(n>=1){dp[1]=1; pushDp1d(dp,{0:'done',1:'base'},'T(1)=1.',labels);}
+      if(n>=2){dp[2]=1; pushDp1d(dp,{0:'done',1:'done',2:'base'},'T(2)=1.',labels);}
+      for(let i=3;i<=n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'T('+i+')=T('+(i-1)+')('+dp[i-1]+')+T('+(i-2)+')('+dp[i-2]+')+T('+(i-3)+')('+dp[i-3]+').',labels);
+        dp[i]=dp[i-1]+dp[i-2]+dp[i-3];
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'T('+i+')='+dp[i]+'.',labels);
+      }
+      const fc={}; for(let i=0;i<=n;i++) fc[i]=i===n?'res':'done';
+      pushDp1d(dp,fc,'Answer: T('+n+') = '+dp[n]+'.',labels);
+
+    } else if (pid === 26) { // Counting Bits
+      const n = p.input;
+      const dp = Array(n+1).fill(null);
+      const labels = Array.from({length:n+1},(_,i)=>'bits('+i+')');
+      dp[0]=0; pushDp1d(dp,{0:'base'},'bits(0) = 0.',labels);
+      for(let i=1;i<=n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'bits('+i+') = bits('+(i>>1)+')('+dp[i>>1]+') + ('+i+'&1)='+(i&1)+'.',labels);
+        dp[i]=dp[i>>1]+(i&1);
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'bits('+i+') = '+dp[i]+'.',labels);
+      }
+      const fc={}; for(let i=0;i<=n;i++) fc[i]='res';
+      pushDp1d(dp,fc,'Counting bits complete.',labels);
+
+    } else if (pid === 27) { // Is Subsequence - dp2d style showing pointer progress
+      const [s, t] = p.input;
+      const m=s.length, n=t.length;
+      const dp=Array.from({length:2},()=>Array(n+1).fill(0));
+      const rowLabels=['i=0','i=1'];
+      const colLabels=['','...t...'];
+      // Simple 1D pointer visualization
+      const dpArr = Array(t.length).fill(null);
+      const labels = t.split('').map((c,i)=>'t['+i+']='+c);
+      let si=0;
+      for(let j=0;j<t.length;j++){
+        dpArr[j]=si;
+        const c={}; for(let k=0;k<j;k++) c[k]='done'; c[j]='cur';
+        pushDp1d(dpArr,c,'Checking t['+j+']='+t[j]+' vs s['+si+']='+s[si]+'.',labels);
+        if(si<s.length&&t[j]===s[si]) si++;
+        dpArr[j]=si;
+        const c2={}; for(let k=0;k<=j;k++) c2[k]='done';
+        pushDp1d(dpArr,c2,'s pointer now at '+si+'.',labels);
+      }
+      const fc={}; dpArr.forEach((_,i)=>fc[i]=i===t.length-1?'res':'done');
+      pushDp1d(dpArr,fc,'Result: '+(si===s.length?'true — is subsequence':'false — not a subsequence')+'.',labels);
+
+    } else if (pid === 28) { // Pascal's Triangle Row
+      const n = p.input;
+      const dp = Array(n).fill(null);
+      const labels = Array.from({length:n},(_,i)=>'C('+i+')');
+      dp[0]=1; const c0={}; dp.forEach((_,i)=>c0[i]=(i===0?'base':'empty'));
+      pushDp1d(dp,c0,'Initialize row with dp[0]=1.',labels);
+      for(let i=1;i<n;i++){
+        const c={...doneColors(dp.slice(0,i),i-1),[i]:'base'};
+        for(let j=i;j>0;j--){
+          dp[j]=(dp[j]||0)+(dp[j-1]||0);
+          const ci={...c}; ci[j]='cur';
+          pushDp1d(dp,ci,'Row '+i+': dp['+j+']+=dp['+(j-1)+'].',labels);
+          ci[j]='done';
+        }
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]='res');
+      pushDp1d(dp,fc,'Pascal row '+n+': ['+dp.join(',')+'].',labels);
+
+    } else if (pid === 29) { // Coin Change
+      const coins = p.input, amount = p.target;
+      const dp = Array(amount+1).fill(Infinity);
+      dp[0]=0;
+      const labels = Array.from({length:amount+1},(_,i)=>'amt='+i);
+      const bc={}; bc[0]='base';
+      pushDp1d(dp,bc,'Base: dp[0]=0. All others = ∞.',labels);
+      for(let a=1;a<=amount;a++){
+        const c={...doneColors(dp.map(v=>v===Infinity?null:v),a-1),[a]:'cur'};
+        for(const coin of coins){
+          if(coin<=a&&dp[a-coin]+1<dp[a]) dp[a]=dp[a-coin]+1;
+        }
+        pushDp1d(dp.map(v=>v===Infinity?null:v),c,'dp['+a+']='+( dp[a]===Infinity?'∞':dp[a])+'. Tried coins '+coins.join(',')+'.',labels);
+        const c2={...doneColors(dp.map(v=>v===Infinity?null:v),a)}; c2[a]='done';
+        pushDp1d(dp.map(v=>v===Infinity?null:v),c2,'dp['+a+'] = '+(dp[a]===Infinity?'∞':dp[a])+'.',labels);
+      }
+      const fc={}; dp.forEach((v,i)=>fc[i]=i===amount?'res':'done');
+      pushDp1d(dp.map(v=>v===Infinity?null:v),fc,'Min coins for '+amount+' = '+dp[amount]+'.',labels);
+
+    } else if (pid === 30) { // LIS
+      const nums = p.input;
+      const dp = Array(nums.length).fill(1);
+      const labels = nums.map((v,i)=>'['+i+']='+v);
+      const bc={}; dp.forEach((_,i)=>bc[i]='base');
+      pushDp1d(dp,bc,'Initialize all dp[i]=1 (each element alone).',labels);
+      for(let i=1;i<nums.length;i++){
+        for(let j=0;j<i;j++){
+          if(nums[j]<nums[i]&&dp[j]+1>dp[i]){
+            const c={...doneColors(dp,i-1),[i]:'cur',[j]:'comparing'};
+            pushDp1d(dp,c,'nums['+j+']='+nums[j]+' < nums['+i+']='+nums[i]+'. dp['+i+']=max('+dp[i]+', dp['+j+']+1='+( dp[j]+1)+').',labels);
+            dp[i]=dp[j]+1;
+          }
+        }
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+'.',labels);
+      }
+      const maxV=Math.max(...dp);
+      const maxI=dp.lastIndexOf(maxV);
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===maxI?'res':'done');
+      pushDp1d(dp,fc,'LIS length = '+maxV+'.',labels);
+
+    } else if (pid === 31) { // LCS
+      const [s1,s2] = p.input;
+      const m=s1.length, n=s2.length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(null));
+      const rowLabels=['',...s1.split('')];
+      const colLabels=['',...s2.split('')];
+      for(let j=0;j<=n;j++) dp[0][j]=0;
+      for(let i=0;i<=m;i++) dp[i][0]=0;
+      const baseC={};
+      for(let j=0;j<=n;j++) baseC['0_'+j]='base';
+      for(let i=0;i<=m;i++) baseC[i+'_0']='base';
+      pushDp2d(dp,baseC,rowLabels,colLabels,'Base cases: empty string → LCS=0.');
+      for(let i=1;i<=m;i++){
+        for(let j=1;j<=n;j++){
+          const allDone={...baseC};
+          for(let pi=1;pi<i;pi++) for(let pj=1;pj<=n;pj++) if(dp[pi][pj]!==null) allDone[pi+'_'+pj]='done';
+          for(let pj=1;pj<j;pj++) if(dp[i][pj]!==null) allDone[i+'_'+pj]='done';
+          allDone[i+'_'+j]='cur';
+          pushDp2d(dp,allDone,rowLabels,colLabels,"Comparing '"+s1[i-1]+"' and '"+s2[j-1]+"'.");
+          dp[i][j]=s1[i-1]===s2[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+          allDone[i+'_'+j]='done';
+          pushDp2d(dp,allDone,rowLabels,colLabels,'dp['+i+']['+j+'] = '+dp[i][j]+'.');
+        }
+      }
+      const fc={...baseC};
+      for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) fc[i+'_'+j]=(i===m&&j===n)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'LCS length = '+dp[m][n]+'.');
+
+    } else if (pid === 32) { // 0/1 Knapsack
+      const [W, wt, val] = p.input;
+      const n=wt.length;
+      const dp=Array.from({length:n+1},()=>Array(W+1).fill(null));
+      const rowLabels=['0',...wt.map((w,i)=>'item'+i+'(w='+w+')') ];
+      const colLabels=Array.from({length:W+1},(_,j)=>'W='+j);
+      for(let j=0;j<=W;j++) dp[0][j]=0;
+      for(let i=0;i<=n;i++) dp[i][0]=0;
+      const bc={}; for(let j=0;j<=W;j++) bc['0_'+j]='base'; for(let i=0;i<=n;i++) bc[i+'_0']='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base cases: 0 items or 0 capacity = 0.');
+      for(let i=1;i<=n;i++){
+        for(let w=1;w<=W;w++){
+          const c={...bc};
+          for(let pi=1;pi<i;pi++) for(let pw=1;pw<=W;pw++) if(dp[pi][pw]!==null) c[pi+'_'+pw]='done';
+          for(let pw=1;pw<w;pw++) if(dp[i][pw]!==null) c[i+'_'+pw]='done';
+          c[i+'_'+w]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,'Item '+i+' (wt='+wt[i-1]+',val='+val[i-1]+'), capacity '+w+'.');
+          dp[i][w]=dp[i-1][w];
+          if(wt[i-1]<=w) dp[i][w]=Math.max(dp[i][w],val[i-1]+dp[i-1][w-wt[i-1]]);
+          c[i+'_'+w]='done';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+w+'] = '+dp[i][w]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<=n;i++) for(let w=1;w<=W;w++) fc[i+'_'+w]=(i===n&&w===W)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Max value = '+dp[n][W]+'.');
+
+    } else if (pid === 33) { // Unique Paths
+      const [m,n] = p.input;
+      const dp=Array.from({length:m},()=>Array(n).fill(null));
+      const rowLabels=Array.from({length:m},(_,i)=>'row '+i);
+      const colLabels=Array.from({length:n},(_,j)=>'col '+j);
+      for(let j=0;j<n;j++) dp[0][j]=1;
+      for(let i=0;i<m;i++) dp[i][0]=1;
+      const bc={}; for(let j=0;j<n;j++) bc['0_'+j]='base'; for(let i=0;i<m;i++) bc[i+'_0']='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: first row and column = 1 path.');
+      for(let i=1;i<m;i++){
+        for(let j=1;j<n;j++){
+          const c={...bc};
+          for(let pi=1;pi<i;pi++) for(let pj=1;pj<n;pj++) if(dp[pi][pj]!==null) c[pi+'_'+pj]='done';
+          for(let pj=1;pj<j;pj++) if(dp[i][pj]!==null) c[i+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']=dp['+(i-1)+']['+j+']('+dp[i-1][j]+')+dp['+i+']['+(j-1)+']('+dp[i][j-1]+').');
+          dp[i][j]=dp[i-1][j]+dp[i][j-1];
+          c[i+'_'+j]='done';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+'] = '+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<m;i++) for(let j=1;j<n;j++) fc[i+'_'+j]=(i===m-1&&j===n-1)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Unique paths = '+dp[m-1][n-1]+'.');
+
+    } else if (pid === 34) { // Jump Game
+      const nums = p.input;
+      const dp = nums.map(()=>null);
+      const labels = nums.map((v,i)=>'['+i+']='+v);
+      let maxR=0;
+      for(let i=0;i<nums.length;i++){
+        dp[i]=(i<=maxR)?1:0;
+        const c={}; for(let j=0;j<i;j++) c[j]=(dp[j]?'done':'discarded'); c[i]='cur';
+        pushDp1d(dp,c,(i<=maxR)?'Index '+i+' reachable. MaxReach='+maxR+'.':'Index '+i+' NOT reachable!',labels);
+        if(i<=maxR) maxR=Math.max(maxR,i+nums[i]);
+        c[i]=(dp[i]?'done':'discarded');
+        pushDp1d(dp,c,'MaxReach updated to '+maxR+'.',labels);
+      }
+      const fc={}; dp.forEach((v,i)=>fc[i]=v?'res':'empty');
+      pushDp1d(dp,fc,'Can reach end: '+(dp[nums.length-1]?'true':'false')+'.',labels);
+
+    } else if (pid === 35) { // Jump Game II
+      const nums = p.input;
+      const dp = Array(nums.length).fill(null);
+      const labels = nums.map((v,i)=>'['+i+']='+v);
+      let jumps=0, cur=0, far=0;
+      dp[0]=0; const bc={}; bc[0]='base';
+      pushDp1d(dp,bc,'Start at index 0 with 0 jumps.',labels);
+      for(let i=0;i<nums.length-1;i++){
+        far=Math.max(far,i+nums[i]);
+        dp[i]=jumps;
+        const c={}; for(let j=0;j<=i;j++) c[j]='done'; c[i]='cur';
+        pushDp1d(dp,c,'i='+i+', nums[i]='+nums[i]+', far='+far+'.',labels);
+        if(i===cur){
+          jumps++; cur=far;
+          pushDp1d(dp,c,'Reached boundary. Jumps='+jumps+', new boundary='+cur+'.',labels);
+        }
+      }
+      dp[nums.length-1]=jumps;
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===nums.length-1?'res':'done');
+      pushDp1d(dp,fc,'Min jumps = '+jumps+'.',labels);
+
+    } else if (pid === 36) { // Decode Ways
+      const s = p.input;
+      const n = s.length;
+      const dp = Array(n+1).fill(null);
+      const labels = ['dp[0]',...s.split('').map((_,i)=>'dp['+(i+1)+']')];
+      dp[0]=1; dp[1]=s[0]!=='0'?1:0;
+      pushDp1d(dp,{0:'base',1:'base'},'Base: dp[0]=1, dp[1]='+(s[0]!=='0'?1:0)+'.',labels);
+      for(let i=2;i<=n;i++){
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'Computing dp['+i+'] for char '+s[i-1]+'.',labels);
+        dp[i]=0;
+        if(s[i-1]!=='0') dp[i]+=dp[i-1];
+        const two=+s.slice(i-2,i);
+        if(two>=10&&two<=26) dp[i]+=dp[i-2];
+        const c2={...doneColors(dp,i)}; c2[i]='done';
+        pushDp1d(dp,c2,'dp['+i+'] = '+dp[i]+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n?'res':'done');
+      pushDp1d(dp,fc,'Decode ways = '+dp[n]+'.',labels);
+
+    } else if (pid === 37) { // Word Break
+      const [s, dict] = p.input;
+      const n = s.length;
+      const dp = Array(n+1).fill(null);
+      const labels = Array.from({length:n+1},(_,i)=>i===0?'""':'"'+s.slice(0,i)+'"');
+      dp[0]=true;
+      pushDp1d(dp,{0:'base'},'dp[0]=true (empty string).',labels);
+      const set = new Set(dict);
+      for(let i=1;i<=n;i++){
+        dp[i]=false;
+        for(let j=0;j<i;j++){
+          if(dp[j]&&set.has(s.slice(j,i))){
+            dp[i]=true; break;
+          }
+        }
+        const c={...doneColors(dp.map(v=>v===null?null:1),i-1),[i]:'cur'};
+        pushDp1d(dp.map(v=>v===null?null:v?1:0),c,'dp['+i+'] for "'+s.slice(0,i)+'" = '+(dp[i]?'true':'false')+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n?'res':'done');
+      pushDp1d(dp.map(v=>v?1:0),fc,'Can segment "'+s+'" = '+(dp[n]?'true':'false')+'.',labels);
+
+    } else if (pid === 38) { // House Robber II
+      const nums = p.input;
+      const n = nums.length;
+      const rob = a => {
+        const dp=[...a];
+        if(a.length>1) dp[1]=Math.max(a[0],a[1]);
+        for(let i=2;i<a.length;i++) dp[i]=Math.max(dp[i-1],dp[i-2]+a[i]);
+        return dp[a.length-1];
+      };
+      const dp1=nums.slice(0,n-1);
+      const dp2=nums.slice(1);
+      const labels1=dp1.map((_,i)=>'h['+i+']');
+      const labels2=dp2.map((_,i)=>'h['+(i+1)+']');
+      pushDp1d([...dp1],{},'Pass 1: houses 0 to '+(n-2)+'.',labels1);
+      const r1=rob([...dp1]);
+      pushDp1d(dp1.map(()=>r1),{},'Pass 1 result: '+r1+'.',labels1);
+      pushDp1d([...dp2],{},'Pass 2: houses 1 to '+(n-1)+'.',labels2);
+      const r2=rob([...dp2]);
+      pushDp1d(dp2.map(()=>r2),{},'Pass 2 result: '+r2+'. Answer=max('+r1+','+r2+')='+Math.max(r1,r2)+'.',labels2);
+
+    } else if (pid === 39) { // Partition Equal Subset Sum
+      const nums = p.input;
+      const sum = nums.reduce((a,b)=>a+b,0);
+      if(sum%2){ pushDp1d([0],{0:'empty'},'Sum is odd — impossible.',['sum']); }
+      else {
+        const T=sum/2;
+        const dp=Array(T+1).fill(null);
+        dp[0]=1;
+        const labels=Array.from({length:T+1},(_,i)=>'sum='+i);
+        pushDp1d(dp,{0:'base'},'Target='+T+'. dp[0]=true.',labels);
+        for(const n of nums){
+          for(let j=T;j>=n;j--){
+            if(dp[j-n]) dp[j]=1;
+          }
+          const c={}; dp.forEach((v,i)=>c[i]=v?'done':'empty');
+          pushDp1d(dp,c,'After processing item '+n+'.',labels);
+        }
+        const fc={}; dp.forEach((v,i)=>fc[i]=i===T?'res':(v?'done':'empty'));
+        pushDp1d(dp,fc,'Can partition equally: '+(dp[T]?'true':'false')+'.',labels);
+      }
+
+    } else if (pid === 40) { // Target Sum
+      const nums = p.input, target = p.target;
+      let dpMap={0:1};
+      const labels=['ways'];
+      for(let step=0;step<nums.length;step++){
+        const nd={};
+        for(const [s,c] of Object.entries(dpMap)){ nd[+s+nums[step]]=(nd[+s+nums[step]]||0)+c; nd[+s-nums[step]]=(nd[+s-nums[step]]||0)+c; }
+        dpMap=nd;
+        const keys=Object.keys(dpMap).sort((a,b)=>+a-+b);
+        const vals=keys.map(k=>dpMap[k]);
+        const lbls=keys.map(k=>'sum='+k);
+        const c={}; vals.forEach((_,i)=>c[i]='done');
+        pushDp1d(vals,c,'After assigning +/- to nums['+step+']='+nums[step]+'.',lbls);
+      }
+      const ans=dpMap[target]||0;
+      pushDp1d([ans],{0:'res'},'Ways to reach target '+target+' = '+ans+'.',['answer']);
+
+    } else if (pid === 41) { // Perfect Squares
+      const n = p.input;
+      const dp = Array(n+1).fill(Infinity);
+      dp[0]=0;
+      const labels=Array.from({length:n+1},(_,i)=>'ps('+i+')');
+      pushDp1d(dp.map(v=>v===Infinity?null:v),{0:'base'},'dp[0]=0, all others ∞.',labels);
+      for(let i=1;i<=n;i++){
+        for(let j=1;j*j<=i;j++) if(dp[i-j*j]+1<dp[i]) dp[i]=dp[i-j*j]+1;
+        const c={...doneColors(dp.slice(0,i).map(v=>v===Infinity?null:v),i-1),[i]:'cur'};
+        pushDp1d(dp.map(v=>v===Infinity?null:v),c,'dp['+i+'] = '+dp[i]+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n?'res':'done');
+      pushDp1d(dp.map(v=>v===Infinity?null:v),fc,'Min perfect squares for '+n+' = '+dp[n]+'.',labels);
+
+    } else if (pid === 42) { // Min Path Sum
+      const grid = p.input;
+      const m=grid.length, n=grid[0].length;
+      const dp=grid.map(r=>[...r]);
+      const rowLabels=Array.from({length:m},(_,i)=>'r'+i);
+      const colLabels=Array.from({length:n},(_,j)=>'c'+j);
+      for(let j=1;j<n;j++) dp[0][j]+=dp[0][j-1];
+      for(let i=1;i<m;i++) dp[i][0]+=dp[i-1][0];
+      const bc={}; for(let j=0;j<n;j++) bc['0_'+j]='base'; for(let i=0;i<m;i++) bc[i+'_0']='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: first row and col cumulative sums.');
+      for(let i=1;i<m;i++){
+        for(let j=1;j<n;j++){
+          const c={...bc};
+          for(let pi=1;pi<i;pi++) for(let pj=1;pj<n;pj++) c[pi+'_'+pj]='done';
+          for(let pj=1;pj<j;pj++) c[i+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']=grid+min(up='+dp[i-1][j]+',left='+dp[i][j-1]+').');
+          dp[i][j]+=Math.min(dp[i-1][j],dp[i][j-1]);
+          c[i+'_'+j]='done';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<m;i++) for(let j=1;j<n;j++) fc[i+'_'+j]=(i===m-1&&j===n-1)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Min path sum = '+dp[m-1][n-1]+'.');
+
+    } else if (pid === 43) { // Triangle
+      const tri = p.input;
+      const n=tri.length;
+      const dp=[...tri[n-1]];
+      const labels=dp.map((_,i)=>'pos '+i);
+      const bc={}; dp.forEach((_,i)=>bc[i]='base');
+      pushDp1d([...dp],bc,'Start from bottom row.',labels);
+      for(let i=n-2;i>=0;i--){
+        for(let j=0;j<=i;j++){
+          const prev=dp[j];
+          dp[j]=tri[i][j]+Math.min(dp[j],dp[j+1]);
+          const c={}; for(let k=0;k<=i;k++) c[k]='done'; c[j]='cur';
+          pushDp1d([...dp],c,'Row '+i+', pos '+j+': '+tri[i][j]+'+min('+prev+','+dp[j+1]+')='+dp[j]+'.',labels);
+        }
+      }
+      pushDp1d([...dp],{0:'res'},'Min path from top = '+dp[0]+'.',labels);
+
+    } else if (pid === 44) { // Edit Distance
+      const [a,b] = p.input;
+      const m=a.length, n=b.length;
+      const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i||j?(i?j?null:i:j):0));
+      for(let i=0;i<=m;i++) dp[i][0]=i;
+      for(let j=0;j<=n;j++) dp[0][j]=j;
+      const rowLabels=['',...a.split('')];
+      const colLabels=['',...b.split('')];
+      const bc={}; for(let j=0;j<=n;j++) bc['0_'+j]='base'; for(let i=0;i<=m;i++) bc[i+'_0']='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: edit distances from empty string.');
+      for(let i=1;i<=m;i++){
+        for(let j=1;j<=n;j++){
+          const c={...bc};
+          for(let pi=1;pi<i;pi++) for(let pj=1;pj<=n;pj++) if(dp[pi][pj]!==null) c[pi+'_'+pj]='done';
+          for(let pj=1;pj<j;pj++) if(dp[i][pj]!==null) c[i+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,"Comparing '"+a[i-1]+"' vs '"+b[j-1]+"'.");
+          dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);
+          c[i+'_'+j]='done';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) fc[i+'_'+j]=(i===m&&j===n)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Edit distance = '+dp[m][n]+'.');
+
+    } else if (pid === 45) { // Maximal Square
+      const matrix = p.input;
+      const m=matrix.length, n=matrix[0].length;
+      const dp=Array.from({length:m},()=>Array(n).fill(null));
+      const rowLabels=Array.from({length:m},(_,i)=>'r'+i);
+      const colLabels=Array.from({length:n},(_,j)=>'c'+j);
+      let maxS=0;
+      for(let i=0;i<m;i++){
+        for(let j=0;j<n;j++){
+          if(matrix[i][j]==='1'){
+            dp[i][j]=i&&j?Math.min(dp[i-1][j]||0,dp[i][j-1]||0,(dp[i-1][j-1]||0))+1:1;
+            maxS=Math.max(maxS,dp[i][j]);
+          } else { dp[i][j]=0; }
+          const c={}; for(let pi=0;pi<=i;pi++) for(let pj=0;pj<n;pj++) if(pi<i||(pi===i&&pj<=j)) c[pi+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'. Max side='+maxS+'.');
+        }
+      }
+      const fc={}; for(let i=0;i<m;i++) for(let j=0;j<n;j++) fc[i+'_'+j]='done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Maximal square area = '+(maxS*maxS)+'.');
+
+    } else if (pid === 46) { // Longest Palindromic Subsequence
+      const s = p.input;
+      const n=s.length;
+      const dp=Array.from({length:n},()=>Array(n).fill(null));
+      for(let i=0;i<n;i++) dp[i][i]=1;
+      const rowLabels=s.split('').map((c,i)=>'s['+i+']='+c);
+      const colLabels=s.split('').map((c,j)=>'s['+j+']='+c);
+      const bc={}; for(let i=0;i<n;i++) bc[i+'_'+i]='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: each char is palindrome of length 1.');
+      for(let len=2;len<=n;len++){
+        for(let i=0;i<=n-len;i++){
+          const j=i+len-1;
+          const c={...bc};
+          for(let pl=2;pl<len;pl++) for(let pi=0;pi<=n-pl;pi++) if(dp[pi][pi+pl-1]!==null) c[pi+'_'+(pi+pl-1)]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,"s["+i+"]='"+s[i]+"', s["+j+"]='"+s[j]+"'.");
+          dp[i][j]=s[i]===s[j]?(len===2?2:(dp[i+1][j-1]||0)+2):Math.max(dp[i+1][j]||0,dp[i][j-1]||0);
+          c[i+'_'+j]='done';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++) fc[i+'_'+(i+len-1)]=(i===0&&i+len-1===n-1)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Longest palindromic subsequence = '+dp[0][n-1]+'.');
+
+    } else if (pid === 47) { // Palindromic Substrings Count
+      const s = p.input;
+      const n=s.length;
+      const dp=Array.from({length:n},()=>Array(n).fill(null));
+      const rowLabels=s.split('').map((c,i)=>'i='+i+' '+c);
+      const colLabels=s.split('').map((c,j)=>'j='+j+' '+c);
+      let count=0;
+      for(let i=n-1;i>=0;i--){
+        for(let j=i;j<n;j++){
+          dp[i][j]=(s[i]===s[j])&&(j-i<=2||(dp[i+1]&&dp[i+1][j-1]))?true:false;
+          if(dp[i][j]) count++;
+        }
+      }
+      // Show final table
+      const dpNum=dp.map(row=>row.map(v=>v?1:0));
+      const fc={}; for(let i=0;i<n;i++) for(let j=i;j<n;j++) fc[i+'_'+j]=dp[i][j]?'done':'empty';
+      pushDp2d(dpNum,fc,rowLabels,colLabels,'Palindromic substrings = '+count+'.');
+
+    } else if (pid === 48) { // Max Product Subarray
+      const nums = p.input;
+      const dpMax=nums.map(()=>null), dpMin=nums.map(()=>null);
+      const labels=nums.map((v,i)=>'['+i+']='+v);
+      dpMax[0]=nums[0]; dpMin[0]=nums[0];
+      let res=nums[0];
+      pushDp1d([...dpMax],{0:'base'},'dp_max[0]=dp_min[0]='+nums[0]+'.',labels);
+      for(let i=1;i<nums.length;i++){
+        const tmp=dpMax[i-1];
+        dpMax[i]=Math.max(nums[i],dpMax[i-1]*nums[i],dpMin[i-1]*nums[i]);
+        dpMin[i]=Math.min(nums[i],tmp*nums[i],dpMin[i-1]*nums[i]);
+        res=Math.max(res,dpMax[i]);
+        const c={...doneColors(dpMax,i-1),[i]:'cur'};
+        pushDp1d([...dpMax],c,'max_dp['+i+']='+dpMax[i]+', min_dp['+i+']='+dpMin[i]+'. Best='+res+'.',labels);
+      }
+      const maxI=dpMax.indexOf(res);
+      const fc={}; dpMax.forEach((_,i)=>fc[i]=i===maxI?'res':'done');
+      pushDp1d(dpMax,fc,'Max product subarray = '+res+'.',labels);
+
+    } else if (pid === 49) { // Interleaving String
+      const [s1,s2,s3] = p.input;
+      const m=s1.length, n=s2.length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(null));
+      dp[0][0]=true;
+      for(let i=1;i<=m;i++) dp[i][0]=dp[i-1][0]&&s1[i-1]===s3[i-1];
+      for(let j=1;j<=n;j++) dp[0][j]=dp[0][j-1]&&s2[j-1]===s3[j-1];
+      const rowLabels=['',...s1.split('')];
+      const colLabels=['',...s2.split('')];
+      const bc={}; for(let i=0;i<=m;i++) bc[i+'_0']='base'; for(let j=0;j<=n;j++) bc['0_'+j]='base';
+      pushDp2d(dp.map(r=>r.map(v=>v===null?null:v?1:0)),bc,rowLabels,colLabels,'Base cases initialized.');
+      for(let i=1;i<=m;i++){
+        for(let j=1;j<=n;j++){
+          dp[i][j]=(dp[i-1][j]&&s1[i-1]===s3[i+j-1])||(dp[i][j-1]&&s2[j-1]===s3[i+j-1]);
+          const c={...bc};
+          for(let pi=1;pi<=i;pi++) for(let pj=1;pj<=n;pj++) if(pi<i||(pi===i&&pj<=j)) c[pi+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp.map(r=>r.map(v=>v===null?null:v?1:0)),c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) fc[i+'_'+j]=(i===m&&j===n)?'res':'done';
+      pushDp2d(dp.map(r=>r.map(v=>v===null?null:v?1:0)),fc,rowLabels,colLabels,'Is interleaving: '+dp[m][n]+'.');
+
+    } else if (pid === 50) { // Distinct Subsequences
+      const [s,t] = p.input;
+      const m=s.length, n=t.length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(null));
+      for(let i=0;i<=m;i++) dp[i][0]=1;
+      const rowLabels=['',...s.split('')];
+      const colLabels=['',...t.split('')];
+      const bc={}; for(let i=0;i<=m;i++) bc[i+'_0']='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: empty t has 1 subsequence in any s.');
+      for(let i=1;i<=m;i++){
+        for(let j=1;j<=n;j++){
+          dp[i][j]=(dp[i-1][j]||0)+(s[i-1]===t[j-1]?(dp[i-1][j-1]||0):0);
+          const c={...bc};
+          for(let pi=1;pi<=i;pi++) for(let pj=1;pj<=n;pj++) if(pi<i||(pi===i&&pj<=j)) c[pi+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) fc[i+'_'+j]=(i===m&&j===n)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Distinct subsequences = '+dp[m][n]+'.');
+
+    } else if (pid === 51) { // Rod Cutting
+      const price = p.input;
+      const n=price.length;
+      const dp=Array(n+1).fill(null);
+      dp[0]=0;
+      const labels=Array.from({length:n+1},(_,i)=>'len='+i);
+      pushDp1d(dp,{0:'base'},'dp[0]=0 (no rod).',labels);
+      for(let j=1;j<=n;j++){
+        dp[j]=0;
+        for(let i=0;i<j;i++) dp[j]=Math.max(dp[j],price[i]+dp[j-i-1]);
+        const c={...doneColors(dp,j-1),[j]:'cur'};
+        pushDp1d(dp,c,'dp['+j+']='+dp[j]+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n?'res':'done');
+      pushDp1d(dp,fc,'Max rod cutting revenue = '+dp[n]+'.',labels);
+
+    } else if (pid === 52) { // Coin Change II
+      const coins = p.input, amount = p.target;
+      const dp=Array(amount+1).fill(null);
+      dp[0]=1;
+      const labels=Array.from({length:amount+1},(_,i)=>'ways('+i+')');
+      pushDp1d(dp,{0:'base'},'dp[0]=1 (one way to make 0).',labels);
+      for(const coin of coins){
+        for(let a=coin;a<=amount;a++){
+          dp[a]=(dp[a]||0)+(dp[a-coin]||0);
+        }
+        const c={}; dp.forEach((_,i)=>c[i]=dp[i]!==null?'done':'empty');
+        pushDp1d(dp,c,'After coin '+coin+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===amount?'res':'done');
+      pushDp1d(dp,fc,'Number of ways = '+dp[amount]+'.',labels);
+
+    } else if (pid === 53) { // Matrix Chain
+      const dims = p.input;
+      const n=dims.length-1;
+      const dp=Array.from({length:n},()=>Array(n).fill(null));
+      for(let i=0;i<n;i++) dp[i][i]=0;
+      const rowLabels=Array.from({length:n},(_,i)=>'M'+(i+1));
+      const colLabels=Array.from({length:n},(_,j)=>'M'+(j+1));
+      const bc={}; for(let i=0;i<n;i++) bc[i+'_'+i]='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: single matrix costs 0 multiplications.');
+      for(let len=2;len<=n;len++){
+        for(let i=0;i<=n-len;i++){
+          const j=i+len-1;
+          dp[i][j]=Infinity;
+          for(let k=i;k<j;k++) dp[i][j]=Math.min(dp[i][j],dp[i][k]+dp[k+1][j]+dims[i]*dims[k+1]*dims[j+1]);
+          const c={...bc};
+          for(let pl=2;pl<len;pl++) for(let pi=0;pi<=n-pl;pi++) if(dp[pi][pi+pl-1]!==Infinity) c[pi+'_'+(pi+pl-1)]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp.map(r=>r.map(v=>v===Infinity?null:v)),c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++) fc[i+'_'+(i+len-1)]=(i===0&&i+len-1===n-1)?'res':'done';
+      pushDp2d(dp.map(r=>r.map(v=>v===Infinity?null:v)),fc,rowLabels,colLabels,'Min multiplications = '+dp[0][n-1]+'.');
+
+    } else if (pid === 54) { // Wildcard Matching
+      const [s,pat] = p.input;
+      const m=s.length, n=pat.length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(null));
+      dp[0][0]=true;
+      for(let j=1;j<=n;j++) dp[0][j]=pat[j-1]==='*'&&dp[0][j-1];
+      const rowLabels=['',...s.split('')];
+      const colLabels=['',...pat.split('')];
+      const bc={}; bc['0_0']='base'; for(let j=1;j<=n;j++) bc['0_'+j]=dp[0][j]?'base':'empty';
+      pushDp2d(dp.map(r=>r.map(v=>v===null?null:v?1:0)),bc,rowLabels,colLabels,'Base row initialized.');
+      for(let i=1;i<=m;i++){
+        for(let j=1;j<=n;j++){
+          if(pat[j-1]==='*') dp[i][j]=dp[i-1][j]||dp[i][j-1];
+          else dp[i][j]=(pat[j-1]==='?'||pat[j-1]===s[i-1])&&dp[i-1][j-1];
+          const c={...bc};
+          for(let pi=1;pi<=i;pi++) for(let pj=1;pj<=n;pj++) if(pi<i||(pi===i&&pj<=j)) c[pi+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp.map(r=>r.map(v=>v===null?null:v?1:0)),c,rowLabels,colLabels,"s["+i+"]='"+s[i-1]+"', p["+j+"]='"+pat[j-1]+"' → "+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) fc[i+'_'+j]=(i===m&&j===n)?'res':'done';
+      pushDp2d(dp.map(r=>r.map(v=>v===null?null:v?1:0)),fc,rowLabels,colLabels,'Match result: '+dp[m][n]+'.');
+
+    } else if (pid === 55) { // Regex Matching
+      const [s,pat] = p.input;
+      const m=s.length, n=pat.length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));
+      dp[0][0]=true;
+      for(let j=2;j<=n;j++) if(pat[j-1]==='*') dp[0][j]=dp[0][j-2];
+      const rowLabels=['',...s.split('')];
+      const colLabels=['',...pat.split('')];
+      const bc={}; bc['0_0']='base'; for(let j=1;j<=n;j++) bc['0_'+j]=dp[0][j]?'base':'empty';
+      pushDp2d(dp.map(r=>r.map(v=>v?1:0)),bc,rowLabels,colLabels,'Base row initialized.');
+      for(let i=1;i<=m;i++){
+        for(let j=1;j<=n;j++){
+          if(pat[j-1]==='*') dp[i][j]=dp[i][j-2]||((pat[j-2]==='.'||pat[j-2]===s[i-1])&&dp[i-1][j]);
+          else dp[i][j]=(pat[j-1]==='.'||pat[j-1]===s[i-1])&&dp[i-1][j-1];
+          const c={...bc};
+          for(let pi=1;pi<=i;pi++) for(let pj=1;pj<=n;pj++) if(pi<i||(pi===i&&pj<=j)) c[pi+'_'+pj]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp.map(r=>r.map(v=>v?1:0)),c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) fc[i+'_'+j]=(i===m&&j===n)?'res':'done';
+      pushDp2d(dp.map(r=>r.map(v=>v?1:0)),fc,rowLabels,colLabels,'Regex match: '+dp[m][n]+'.');
+
+    } else if (pid === 56) { // Burst Balloons
+      const nums = p.input;
+      const a=[1,...nums,1], n=a.length;
+      const dp=Array.from({length:n},()=>Array(n).fill(null));
+      for(let i=0;i<n;i++) dp[i][i]=0;
+      const rowLabels=a.map((v,i)=>'['+i+']='+v);
+      const colLabels=a.map((v,j)=>'['+j+']='+v);
+      const bc={}; for(let i=0;i<n;i++) bc[i+'_'+i]='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Padded array: ['+a.join(',')+'].');
+      for(let len=2;len<n;len++){
+        for(let i=0;i<n-len;i++){
+          const j=i+len;
+          dp[i][j]=0;
+          for(let k=i+1;k<j;k++) dp[i][j]=Math.max(dp[i][j],(dp[i][k]||0)+a[i]*a[k]*a[j]+(dp[k][j]||0));
+          const c={...bc};
+          for(let pl=2;pl<len;pl++) for(let pi=0;pi<n-pl;pi++) if(dp[pi][pi+pl]!==null) c[pi+'_'+(pi+pl)]='done';
+          c[i+'_'+j]='cur';
+          pushDp2d(dp,c,rowLabels,colLabels,'dp['+i+']['+j+']='+dp[i][j]+'.');
+        }
+      }
+      const fc={...bc};
+      for(let len=2;len<n;len++) for(let i=0;i<n-len;i++) fc[i+'_'+(i+len)]=(i===0&&i+len===n-1)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Max coins = '+dp[0][n-1]+'.');
+
+    } else if (pid === 57) { // Palindrome Partitioning II
+      const s = p.input;
+      const n=s.length;
+      const isPalin=Array.from({length:n},()=>Array(n).fill(false));
+      for(let i=n-1;i>=0;i--) for(let j=i;j<n;j++) isPalin[i][j]=(s[i]===s[j])&&(j-i<=2||isPalin[i+1][j-1]);
+      const dp=Array(n).fill(null);
+      for(let i=0;i<n;i++){
+        if(isPalin[0][i]){ dp[i]=0; continue; }
+        dp[i]=Infinity;
+        for(let j=1;j<=i;j++) if(isPalin[j][i]&&dp[j-1]!==null) dp[i]=Math.min(dp[i],dp[j-1]+1);
+      }
+      const labels=s.split('').map((c,i)=>'"'+s.slice(0,i+1)+'"');
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n-1?'res':'done');
+      pushDp1d(dp.map(v=>v===Infinity?null:v),fc,'Min cuts for "'+s+'" = '+dp[n-1]+'.',labels);
+
+    } else if (pid === 58) { // Longest Valid Parentheses
+      const s = p.input;
+      const n=s.length;
+      const dp=Array(n).fill(null);
+      let maxV=0;
+      const labels=s.split('').map((c,i)=>'['+i+']='+c);
+      for(let i=1;i<n;i++){
+        dp[i]=0;
+        if(s[i]===')'){
+          if(s[i-1]==='(') dp[i]=(i>=2&&dp[i-2]!==null?dp[i-2]:0)+2;
+          else if(dp[i-1]>0){
+            const k=i-dp[i-1]-1;
+            if(k>=0&&s[k]==='(') dp[i]=dp[i-1]+2+(k>0&&dp[k-1]!==null?dp[k-1]:0);
+          }
+          maxV=Math.max(maxV,dp[i]);
+        }
+        const c={}; for(let j=0;j<i;j++) c[j]='done'; c[i]='cur';
+        pushDp1d(dp,c,'dp['+i+']='+dp[i]+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=dp[i]===maxV&&maxV>0?'res':'done');
+      pushDp1d(dp,fc,'Longest valid parentheses = '+maxV+'.',labels);
+
+    } else if (pid === 59) { // Dungeon Game
+      const dungeon = p.input;
+      const m=dungeon.length, n=dungeon[0].length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(Infinity));
+      dp[m][n-1]=1; dp[m-1][n]=1;
+      const rowLabels=[...dungeon.map((r,i)=>'r'+i),'pad'];
+      const colLabels=[...dungeon[0].map((_,j)=>'c'+j),'pad'];
+      for(let i=m-1;i>=0;i--){
+        for(let j=n-1;j>=0;j--){
+          dp[i][j]=Math.max(1,Math.min(dp[i+1][j],dp[i][j+1])-dungeon[i][j]);
+        }
+      }
+      const dpShow=dp.slice(0,m).map(r=>r.slice(0,n));
+      const fc={}; dpShow.forEach((r,i)=>r.forEach((_,j)=>fc[i+'_'+j]=(i===0&&j===0)?'res':'done'));
+      pushDp2d(dpShow,fc,rowLabels.slice(0,m),colLabels.slice(0,n),'Min health to enter (0,0) = '+dp[0][0]+'.');
+
+    } else if (pid === 60 || pid === 66) { // Egg Drop
+      const [k, n] = p.input;
+      const maxT=Math.ceil(Math.log2(n))+k;
+      const dp=Array.from({length:maxT+1},()=>Array(k+1).fill(0));
+      let t=0;
+      while(dp[t][k]<n){ t++; for(let e=1;e<=k;e++) dp[t][e]=dp[t-1][e-1]+dp[t-1][e]+1; }
+      const ans=t;
+      const rowLabels=Array.from({length:t+1},(_,i)=>'t='+i);
+      const colLabels=Array.from({length:k+1},(_,j)=>'k='+j);
+      const fc={};
+      for(let ti=0;ti<=t;ti++) for(let e=0;e<=k;e++) fc[ti+'_'+e]=(ti===ans&&e===k)?'res':'done';
+      const dpShow=dp.slice(0,t+1).map(r=>r.slice(0,k+1));
+      pushDp2d(dpShow,fc,rowLabels,colLabels,'Min trials for '+k+' eggs, '+n+' floors = '+ans+'.');
+
+    } else if (pid === 61) { // Russian Doll Envelopes
+      const envs = JSON.parse(JSON.stringify(p.input));
+      envs.sort((a,b)=>a[0]!==b[0]?a[0]-b[0]:b[1]-a[1]);
+      const heights=envs.map(e=>e[1]);
+      const dp=heights.map(()=>null);
+      const labels=envs.map(e=>'['+e[0]+','+e[1]+']');
+      const tails=[];
+      for(let i=0;i<heights.length;i++){
+        let lo=0,hi=tails.length;
+        while(lo<hi){ const m=(lo+hi)>>1; tails[m]<heights[i]?lo=m+1:hi=m; }
+        tails[lo]=heights[i];
+        dp[i]=lo+1;
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d([...dp],c,'Envelope '+JSON.stringify(envs[i])+' → LIS pos '+(lo+1)+'.',labels);
+      }
+      const maxV=Math.max(...dp);
+      const fc={}; dp.forEach((_,i)=>fc[i]=dp[i]===maxV?'res':'done');
+      pushDp1d([...dp],fc,'Max envelopes = '+maxV+'.',labels);
+
+    } else if (pid === 62) { // K Inverse Pairs
+      const [n,k] = p.input;
+      const MOD=1e9+7;
+      const dp=Array.from({length:n+1},()=>Array(k+1).fill(null));
+      dp[0][0]=1;
+      const rowLabels=Array.from({length:n+1},(_,i)=>'n='+i);
+      const colLabels=Array.from({length:k+1},(_,j)=>'k='+j);
+      const bc={}; bc['0_0']='base';
+      pushDp2d(dp,bc,rowLabels,colLabels,'Base: dp[0][0]=1.');
+      for(let i=1;i<=n;i++){
+        const pre=Array(k+2).fill(0);
+        for(let j=0;j<=k;j++) pre[j+1]=(pre[j]+(dp[i-1][j]||0))%MOD;
+        for(let j=0;j<=k;j++){
+          dp[i][j]=(pre[j+1]-pre[Math.max(0,j-i+1)]+MOD)%MOD;
+        }
+        const c={...bc};
+        for(let pi=1;pi<i;pi++) for(let pj=0;pj<=k;pj++) if(dp[pi][pj]!==null) c[pi+'_'+pj]='done';
+        for(let pj=0;pj<=k;pj++) c[i+'_'+pj]='done';
+        pushDp2d(dp,c,rowLabels,colLabels,'Filled row n='+i+'.');
+      }
+      const fc={...bc};
+      for(let i=1;i<=n;i++) for(let j=0;j<=k;j++) fc[i+'_'+j]=(i===n&&j===k)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'K inverse pairs = '+dp[n][k]+'.');
+
+    } else if (pid === 63) { // Count Palindromic Subseqs
+      const s = p.input;
+      const n=s.length;
+      const dp=Array.from({length:n},()=>Array(n).fill(null));
+      for(let i=0;i<n;i++) dp[i][i]=1;
+      const MOD=1e9+7;
+      for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){
+        const j=i+len-1;
+        dp[i][j]=s[i]===s[j]?(dp[i+1][j]+dp[i][j-1]+1)%MOD:((dp[i+1][j]+dp[i][j-1]-( dp[i+1][j-1]||0)+MOD)%MOD);
+      }
+      const rowLabels=s.split('').map((c,i)=>'s['+i+']='+c);
+      const colLabels=s.split('').map((c,j)=>'s['+j+']='+c);
+      const bc={}; for(let i=0;i<n;i++) bc[i+'_'+i]='base';
+      const fc={...bc}; for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++) fc[i+'_'+(i+len-1)]=(i===0&&i+len-1===n-1)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Distinct palindromic subsequences = '+dp[0][n-1]+'.');
+
+    } else if (pid === 64) { // Strange Printer
+      const s = p.input;
+      const n=s.length;
+      const dp=Array.from({length:n},()=>Array(n).fill(null));
+      for(let i=0;i<n;i++) dp[i][i]=1;
+      for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){
+        const j=i+len-1;
+        dp[i][j]=dp[i][j-1]+1;
+        for(let k=i;k<j;k++) if(s[k]===s[j]) dp[i][j]=Math.min(dp[i][j],(k>i?dp[i][k-1]:0)+(k<j?dp[k][j-1]:0)+(k===i?1:0));
+      }
+      const rowLabels=s.split('').map((c,i)=>'['+i+']='+c);
+      const colLabels=s.split('').map((c,j)=>'['+j+']='+c);
+      const bc={}; for(let i=0;i<n;i++) bc[i+'_'+i]='base';
+      const fc={...bc}; for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++) fc[i+'_'+(i+len-1)]=(i===0&&i+len-1===n-1)?'res':'done';
+      pushDp2d(dp,fc,rowLabels,colLabels,'Min turns for "'+s+'" = '+dp[0][n-1]+'.');
+
+    } else if (pid === 65) { // Min Cost Cut Stick
+      const [rodN,cuts] = p.input[0];
+      const c=[0,...cuts,rodN].sort((a,b)=>a-b), m=c.length;
+      const dp=Array.from({length:m},()=>Array(m).fill(null));
+      for(let i=0;i<m;i++) dp[i][i]=0;
+      for(let len=2;len<m;len++) for(let i=0;i<m-len;i++){
+        const j=i+len; dp[i][j]=Infinity;
+        for(let k=i+1;k<j;k++) dp[i][j]=Math.min(dp[i][j],(dp[i][k]||0)+(dp[k][j]||0)+c[j]-c[i]);
+      }
+      const rowLabels=c.map(v=>'c='+v);
+      const colLabels=c.map(v=>'c='+v);
+      const bc={}; for(let i=0;i<m;i++) bc[i+'_'+i]='base';
+      const fc={...bc}; for(let len=2;len<m;len++) for(let i=0;i<m-len;i++) fc[i+'_'+(i+len)]=(i===0&&i+len===m-1)?'res':'done';
+      pushDp2d(dp.map(r=>r.map(v=>v===Infinity?null:v)),fc,rowLabels,colLabels,'Min cut cost = '+dp[0][m-1]+'.');
+
+    } else if (pid === 67) { // Cherry Pickup
+      const grid = p.input;
+      const n=grid.length;
+      const memo=new Map();
+      function cherryDp(r,c1,c2){
+        const c2r=r+c1-c2;
+        if(r===n) return 0;
+        if(c1<0||c1>=n||c2r<0||c2r>=n) return -Infinity;
+        if(grid[r][c1]===-1||grid[r][c2r]===-1) return -Infinity;
+        const key=r+','+c1+','+c2;
+        if(memo.has(key)) return memo.get(key);
+        let cherries=c1===c2r?grid[r][c1]:grid[r][c1]+grid[r][c2r];
+        let best=-Infinity;
+        for(const dc1 of [0,1]) for(const dc2 of [0,1]){
+          const nx=cherryDp(r+1,c1+dc1,c2+dc2); if(nx>-Infinity) best=Math.max(best,nx);
+        }
+        const res=best===-Infinity?-Infinity:cherries+best;
+        memo.set(key,res); return res;
+      }
+      const result=Math.max(0,cherryDp(0,0,0));
+      const dpShow=grid.map(r=>[...r]);
+      const rowLabels=grid.map((_,i)=>'r'+i);
+      const colLabels=grid[0].map((_,j)=>'c'+j);
+      const fc={}; dpShow.forEach((r,i)=>r.forEach((_,j)=>fc[i+'_'+j]=(grid[i][j]===1?'done':'empty')));
+      fc['0_0']='base'; fc[(n-1)+'_'+(n-1)]='res';
+      pushDp2d(dpShow,fc,rowLabels,colLabels,'Cherry pickup (both paths) = '+result+'.');
+
+    } else if (pid === 68) { // Max Profit Job Scheduling
+      const jobs = JSON.parse(JSON.stringify(p.input));
+      jobs.sort((a,b)=>a[1]-b[1]);
+      const n=jobs.length;
+      const dp=Array(n+1).fill(null);
+      dp[0]=0;
+      const labels=['dp[0]',...jobs.map((_,i)=>'job'+i)];
+      pushDp1d(dp,{0:'base'},'dp[0]=0. Jobs sorted by end time.',labels);
+      for(let i=1;i<=n;i++){
+        const [s,e,prof]=jobs[i-1];
+        let lo=0,hi=i-1;
+        while(lo<hi){ const m=(lo+hi+1)>>1; jobs[m-1][1]<=s?lo=m:hi=m-1; }
+        dp[i]=Math.max(dp[i-1],dp[lo]+prof);
+        const c={...doneColors(dp,i-1),[i]:'cur'};
+        pushDp1d(dp,c,'Job '+i+' ['+s+','+e+','+prof+']: dp['+i+']='+dp[i]+'.',labels);
+        c[i]='done';
+        pushDp1d(dp,c,'dp['+i+']='+dp[i]+'.',labels);
+      }
+      const fc={}; dp.forEach((_,i)=>fc[i]=i===n?'res':'done');
+      pushDp1d(dp,fc,'Max profit = '+dp[n]+'.',labels);
+
+    } else {
+      // Generic DP fallback
+      const dp=[p.expected];
+      pushDp1d(dp,{0:'res'},'Result: '+JSON.stringify(p.expected)+'.',['result']);
+    }
+  } // end DP
+}
+
+/* ══════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════ */
+function renderFrame(idx) {
+  if (!frames.length) return;
+  if (document.querySelector('.panel-viz').offsetWidth < 40) return;
+
+  const frame = frames[idx];
+  const p = problems.find(x => x.id === curId);
+  const canvas = document.getElementById('viz-canvas');
+  canvas.innerHTML = '';
+
+  const prevMsg = document.getElementById('status-text').textContent;
+  document.getElementById('status-text').textContent = frame.msg;
+  document.getElementById('scrubber').value = idx;
+  document.getElementById('frame-lbl').textContent = `${idx} / ${frames.length - 1}`;
+
+  if (frame.msg !== prevMsg) speak(frame.msg);
+
+  /* DP visualizations */
+  const vizType = frame.vizType;
+  if (vizType === 'dp1d') { canvas.style.cssText = ''; renderDp1d(frame, canvas); return; }
+  if (vizType === 'dp2d') { canvas.style.cssText = ''; renderDp2d(frame, canvas); return; }
+
+  /* Array bars */
+  if (p.type === 'array') {
+    canvas.style.alignItems = 'flex-end';
+    const max = Math.max(...frame.arr);
+    frame.arr.forEach((val, i) => {
+      const bar = document.createElement('div');
+      bar.className = `bar ${frame.colors[i] || 'default'}`;
+      bar.style.height = `${Math.max((val / max) * 80, 6)}%`;
+      bar.textContent = val;
+      canvas.appendChild(bar);
+    });
+    return;
+  }
+
+  /* SVG overlay for trees & graphs */
+  canvas.style.alignItems = 'flex-start';
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (W < 40 || H < 40) return;
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'viz-svg');
+  canvas.appendChild(svg);
+
+  const edgeColor = '#2a2a32';
+
+  function drawLine(x1, y1, x2, y2, col = edgeColor) {
+    const el = document.createElementNS(NS, 'line');
+    el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+    el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+    el.setAttribute('stroke', col); el.setAttribute('stroke-width', '1.5');
+    el.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(el);
+  }
+
+  function makeNode(x, y, label, cls) {
+    const el = document.createElement('div');
+    el.className = `node ${cls || 'default'}`;
+    el.style.left = `${x}px`; el.style.top = `${y}px`;
+    el.textContent = label;
+    canvas.appendChild(el);
+  }
+
+  if (p.type === 'tree') {
+    const levels = Math.floor(Math.log2(frame.arr.length)) + 1;
+    const vGap = (H - 60) / Math.max(1, levels);
+    (function draw(i, x, y, ox) {
+      if (i >= frame.arr.length || frame.arr[i] == null) return;
+      const l = 2*i+1, r = 2*i+2;
+      if (l < frame.arr.length && frame.arr[l] != null) { drawLine(x, y, x-ox, y+vGap); draw(l, x-ox, y+vGap, ox/2); }
+      if (r < frame.arr.length && frame.arr[r] != null) { drawLine(x, y, x+ox, y+vGap); draw(r, x+ox, y+vGap, ox/2); }
+      makeNode(x, y, frame.arr[i], frame.colors[i] || 'default');
+    })(0, W/2, 38, W/4);
+
+  } else if (p.type === 'graph') {
+    const cx = W/2, cy = H/2, R = Math.min(W, H)/2 - 52;
+    const N = p.input.length;
+    const coords = Array.from({ length: N }, (_, i) => ({
+      x: cx + R * Math.cos(2*Math.PI*i/N - Math.PI/2),
+      y: cy + R * Math.sin(2*Math.PI*i/N - Math.PI/2)
+    }));
+    const drawn = new Set();
+    p.input.forEach((nbrs, u) => nbrs.forEach(v => {
+      const eid = u < v ? `${u}-${v}` : `${v}-${u}`;
+      if (!drawn.has(eid)) { drawn.add(eid); drawLine(coords[u].x, coords[u].y, coords[v].x, coords[v].y); }
+    }));
+    coords.forEach((c, i) => makeNode(c.x, c.y, i, frame.colors[i] || 'default'));
+  }
+}
+
+/* ══════════════════════════════════════════
+   PLAYBACK
+══════════════════════════════════════════ */
+function syncPlaybackUI() {
+  const tot = frames.length - 1;
+  const s = document.getElementById('scrubber');
+  s.max = tot; s.disabled = !frames.length;
+  document.getElementById('frame-lbl').textContent = `0 / ${tot}`;
+  ['btn-prev','btn-play','btn-next'].forEach(id => {
+    document.getElementById(id).disabled = !frames.length;
+  });
+}
+
+function stepNext() { pausePlay(); if (curFrame < frames.length-1) renderFrame(++curFrame); }
+function stepPrev() { pausePlay(); if (curFrame > 0) renderFrame(--curFrame); }
+function scrubTo(v) { pausePlay(); curFrame = +v; renderFrame(curFrame); }
+
+function togglePlay() {
+  if (playing) { pausePlay(); return; }
+  playing = true;
+  document.getElementById('btn-play').textContent = '⏸';
+  if (curFrame >= frames.length - 1) curFrame = -1;
+  playTimer = setInterval(() => {
+    if (curFrame < frames.length - 1) renderFrame(++curFrame);
+    else pausePlay();
+  }, 440);
+}
+
+function pausePlay() {
+  playing = false; clearInterval(playTimer);
+  const b = document.getElementById('btn-play');
+  if (b) b.textContent = '▶';
+}
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar();
+  new ResizeObserver(() => {
+    if (editor) editor.layout();
+    if (frames.length) renderFrame(curFrame);
+  }).observe(document.querySelector('.workspace'));
+
+  require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+  require(['vs/editor/editor.main'], () => {
+    document.getElementById('editor-mount').innerHTML = '';
+    editor = monaco.editor.create(document.getElementById('editor-mount'), {
+      value: problems[0].starter,
+      language: 'javascript',
+      theme: 'vs-dark',
+      automaticLayout: true,
+      minimap: { enabled: false },
+      fontSize: 13,
+      lineHeight: 22,
+      padding: { top: 16 },
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      fontLigatures: true,
+      scrollBeyondLastLine: false,
+      renderLineHighlight: 'line',
+      overviewRulerLanes: 0,
+    });
+    load(1);
+  });
+});
+</script>
+</body>
+</html>
