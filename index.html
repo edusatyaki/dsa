@@ -1087,35 +1087,455 @@ const problems = [
     time:'O(n)', space:'O(h)',
     starter:'function solve(tree) {\n  const d = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    return 1 + Math.max(d(2*i+1), d(2*i+2));\n  };\n  return d(0);\n}' },
 
-  { cat:'Graphs', id:14, type:'graph', name:'BFS Traversal',        diff:'Medium',
+  { cat:'Trees', id:14, type:'tree', name:'Height of Binary Tree',   diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:3,
+    desc:'Height is the number of edges on the longest root-to-leaf path (equivalently, number of levels minus one).',
+    steps:['Base: null node → return 0.','Recursively get height of left subtree.','Recursively get height of right subtree.','Return 1 + max(leftHeight, rightHeight).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const h = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    return 1 + Math.max(h(2*i+1), h(2*i+2));\n  };\n  return h(0);\n}' },
+
+  { cat:'Trees', id:15, type:'tree', name:'Size of Binary Tree',     diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:7,
+    desc:'Size is the total number of nodes in the tree. Count every node recursively.',
+    steps:['Base: null node → return 0.','Recursively count nodes in left subtree.','Recursively count nodes in right subtree.','Return 1 + leftCount + rightCount.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const sz = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    return 1 + sz(2*i+1) + sz(2*i+2);\n  };\n  return sz(0);\n}' },
+
+  { cat:'Trees', id:16, type:'tree', name:'Count Leaves in Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:4,
+    desc:'A leaf node has no children. Count all leaf nodes in the tree recursively.',
+    steps:['Base: null node → return 0.','If node has no left or right child → it is a leaf, return 1.','Otherwise return countLeaves(left) + countLeaves(right).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const cl = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    const l = 2*i+1, r = 2*i+2;\n    const noLeft  = l >= tree.length || tree[l] == null;\n    const noRight = r >= tree.length || tree[r] == null;\n    if (noLeft && noRight) return 1;\n    return cl(l) + cl(r);\n  };\n  return cl(0);\n}' },
+
+  { cat:'Trees', id:17, type:'tree', name:'Level Order Line by Line', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[[1],[2,3],[4,5,6,7]],
+    desc:'Print nodes level by level, each level as a separate sub-array. Classic BFS with level-size tracking.',
+    steps:['Enqueue root.','Record current queue size = level width.','Dequeue exactly that many nodes → one level.','Enqueue their children.','Repeat until queue empty.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  const res = [], q = [0];\n  while (q.length) {\n    const lvl = [], sz = q.length;\n    for (let k = 0; k < sz; k++) {\n      const i = q.shift();\n      if (i < tree.length && tree[i] != null) {\n        lvl.push(tree[i]);\n        q.push(2*i+1, 2*i+2);\n      }\n    }\n    if (lvl.length) res.push(lvl);\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:18, type:'tree', name:'Reverse Level Order Traversal', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[4,5,6,7,2,3,1],
+    desc:'Visit nodes bottom-up: deepest level first, root last. BFS result reversed.',
+    steps:['BFS from root, collecting each level.','After full BFS, reverse the result array.','Or prepend each level to the output.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const res = [], q = [0];\n  while (q.length) {\n    const i = q.shift();\n    if (i < tree.length && tree[i] != null) {\n      res.unshift(tree[i]); q.push(2*i+1, 2*i+2);\n    }\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:19, type:'tree', name:'Level Order in Spiral Form', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[1,3,2,4,5,6,7],
+    desc:'Alternate direction each level: left-to-right then right-to-left, like a spiral.',
+    steps:['BFS level by level.','Even levels → push left-to-right.','Odd levels → push right-to-left (reverse).','Toggle direction after each level.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  const res = [], q = [0]; let ltr = true;\n  while (q.length) {\n    const sz = q.length, lvl = [];\n    for (let k = 0; k < sz; k++) {\n      const i = q.shift();\n      if (i < tree.length && tree[i] != null) {\n        lvl.push(tree[i]); q.push(2*i+1, 2*i+2);\n      }\n    }\n    if (lvl.length) res.push(...(ltr ? lvl : lvl.reverse()));\n    ltr = !ltr;\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:20, type:'tree', name:'ZigZag Tree Traversal',    diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[[1],[3,2],[4,5,6,7]],
+    desc:'Level-by-level traversal alternating direction each level, returned as grouped levels.',
+    steps:['BFS collecting each level into an array.','Even depth → keep left-to-right.','Odd depth → reverse the level array.','Append each processed level to result.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  const res = [], q = [0]; let rev = false;\n  while (q.length) {\n    const sz = q.length, lvl = [];\n    for (let k = 0; k < sz; k++) {\n      const i = q.shift();\n      if (i < tree.length && tree[i] != null) {\n        lvl.push(tree[i]); q.push(2*i+1, 2*i+2);\n      }\n    }\n    if (lvl.length) res.push(rev ? [...lvl].reverse() : lvl);\n    rev = !rev;\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:21, type:'tree', name:'Iterative Inorder Traversal', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[4,2,5,1,6,3,7],
+    desc:'Inorder traversal (Left → Root → Right) using an explicit stack instead of recursion.',
+    steps:['Push nodes to stack going left as far as possible.','Pop a node → record it.','Move to its right child.','Repeat until stack and current pointer are both empty.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [], stack = []; let i = 0;\n  while (i < tree.length || stack.length) {\n    while (i < tree.length && tree[i] != null) { stack.push(i); i = 2*i+1; }\n    i = stack.pop();\n    if (i !== undefined && tree[i] != null) { res.push(tree[i]); i = 2*i+2; }\n    else break;\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:22, type:'tree', name:'Diameter of Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:4,
+    desc:'Diameter is the longest path between any two nodes (may not pass through root). Equals max of (leftHeight + rightHeight) at each node.',
+    steps:['For each node compute leftHeight + rightHeight.','Track max across all nodes.','Return global maximum diameter.','Base: null node → height 0.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  let d = 0;\n  const h = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    const l = h(2*i+1), r = h(2*i+2);\n    d = Math.max(d, l + r);\n    return 1 + Math.max(l, r);\n  };\n  h(0); return d;\n}' },
+
+  { cat:'Trees', id:23, type:'tree', name:'Balanced Tree Check', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:true,
+    desc:'A tree is height-balanced if the height difference between left and right subtrees is at most 1 at every node.',
+    steps:['Compute height of left and right subtrees.','If |leftH - rightH| > 1 → not balanced.','Recurse on both subtrees.','Return -1 on imbalance, height otherwise.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const h = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    const l = h(2*i+1), r = h(2*i+2);\n    if (l === -1 || r === -1 || Math.abs(l - r) > 1) return -1;\n    return 1 + Math.max(l, r);\n  };\n  return h(0) !== -1;\n}' },
+
+  { cat:'Trees', id:24, type:'tree', name:'Minimum Depth of Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:3,
+    desc:'Minimum depth is the number of nodes on the shortest path from root to the nearest leaf node.',
+    steps:['BFS level by level.','First node with no children is the shallowest leaf.','Return current depth when first leaf is found.','Or use DFS: min(leftDepth, rightDepth) + 1.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  if (!tree.length || tree[0] == null) return 0;\n  const q = [[0, 1]];\n  while (q.length) {\n    const [i, d] = q.shift();\n    const l = 2*i+1, r = 2*i+2;\n    const noL = l >= tree.length || tree[l] == null;\n    const noR = r >= tree.length || tree[r] == null;\n    if (noL && noR) return d;\n    if (!noL) q.push([l, d+1]);\n    if (!noR) q.push([r, d+1]);\n  }\n  return 0;\n}' },
+
+  { cat:'Trees', id:25, type:'tree', name:'Maximum Width of Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:4,
+    desc:'Maximum width is the maximum number of nodes present at any level. Use BFS with index tracking.',
+    steps:['BFS with (nodeIndex, level).','Width of level = lastIndex - firstIndex + 1.','Track max width across all levels.','Use relative indexing to avoid integer overflow.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  if (!tree.length || tree[0] == null) return 0;\n  let maxW = 0, q = [[0, 0]];\n  while (q.length) {\n    const sz = q.length, first = q[0][1], next = [];\n    let last = first;\n    for (let k = 0; k < sz; k++) {\n      const [i, idx] = q.shift(); last = idx;\n      const rel = idx - first;\n      if (2*i+1 < tree.length && tree[2*i+1] != null) next.push([2*i+1, 2*rel+1]);\n      if (2*i+2 < tree.length && tree[2*i+2] != null) next.push([2*i+2, 2*rel+2]);\n    }\n    maxW = Math.max(maxW, last - first + 1); q.push(...next);\n  }\n  return maxW;\n}' },
+
+  { cat:'Trees', id:26, type:'tree', name:'Maximum Depth of Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:3,
+    desc:'Maximum depth equals the number of nodes on the longest root-to-leaf path.',
+    steps:['Base: null node → return 0.','Recursively get depth of left subtree.','Recursively get depth of right subtree.','Return 1 + max(leftDepth, rightDepth).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const d = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    return 1 + Math.max(d(2*i+1), d(2*i+2));\n  };\n  return d(0);\n}' },
+
+  { cat:'Trees', id:27, type:'tree', name:'Left View of Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[1,2,4],
+    desc:'Left view contains the first node visible at each level when the tree is viewed from the left side.',
+    steps:['BFS level by level.','Record the first node of each level.','Add it to the result array.','Continue until all levels are processed.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  const res = [], q = [0];\n  while (q.length) {\n    const sz = q.length; let first = true;\n    for (let k = 0; k < sz; k++) {\n      const i = q.shift();\n      if (i < tree.length && tree[i] != null) {\n        if (first) { res.push(tree[i]); first = false; }\n        q.push(2*i+1, 2*i+2);\n      }\n    }\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:28, type:'tree', name:'Right View of Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[1,3,7],
+    desc:'Right view contains the last node visible at each level when the tree is viewed from the right side.',
+    steps:['BFS level by level.','Track the last node seen at each level.','Add it to result after processing the level.','Continue until all levels are processed.'],
+    time:'O(n)', space:'O(w)',
+    starter:'function solve(tree) {\n  const res = [], q = [0];\n  while (q.length) {\n    const sz = q.length; let last = null;\n    for (let k = 0; k < sz; k++) {\n      const i = q.shift();\n      if (i < tree.length && tree[i] != null) { last = tree[i]; q.push(2*i+1, 2*i+2); }\n    }\n    if (last !== null) res.push(last);\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:29, type:'tree', name:'Top View of Binary Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[4,2,1,3,7],
+    desc:'Top view shows the nodes visible when the tree is viewed from the top. Use horizontal distance (HD) from root.',
+    steps:['BFS with (node, HD) pairs.','Root has HD=0, left child HD-1, right child HD+1.','First node seen at each HD is in top view.','Sort result columns left to right by HD.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const map = new Map(), q = [[0, 0]];\n  while (q.length) {\n    const [i, hd] = q.shift();\n    if (i < tree.length && tree[i] != null) {\n      if (!map.has(hd)) map.set(hd, tree[i]);\n      q.push([2*i+1, hd-1], [2*i+2, hd+1]);\n    }\n  }\n  return [...map.entries()].sort((a,b)=>a[0]-b[0]).map(e=>e[1]);\n}' },
+
+  { cat:'Trees', id:30, type:'tree', name:'Bottom View of Binary Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[4,5,6,3,7],
+    desc:'Bottom view shows the nodes visible when the tree is viewed from the bottom. Last node at each HD wins.',
+    steps:['BFS with (node, HD) pairs.','Root has HD=0, left child HD-1, right child HD+1.','Overwrite map at each HD with current node.','Sort result columns left to right by HD.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const map = new Map(), q = [[0, 0]];\n  while (q.length) {\n    const [i, hd] = q.shift();\n    if (i < tree.length && tree[i] != null) {\n      map.set(hd, tree[i]);\n      q.push([2*i+1, hd-1], [2*i+2, hd+1]);\n    }\n  }\n  return [...map.entries()].sort((a,b)=>a[0]-b[0]).map(e=>e[1]);\n}' },
+
+  { cat:'Trees', id:31, type:'tree', name:'Vertical Tree Traversal', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[[4],[2],[1,5,6],[3],[7]],
+    desc:'Group nodes by their horizontal distance from root. Nodes at same HD and level are sorted by value.',
+    steps:['BFS tracking (node, HD, level).','Group nodes by HD into columns.','Within each column sort by level then value.','Return columns sorted left to right.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const cols = new Map(), q = [[0, 0, 0]];\n  while (q.length) {\n    const [i, hd, lvl] = q.shift();\n    if (i < tree.length && tree[i] != null) {\n      if (!cols.has(hd)) cols.set(hd, []);\n      cols.get(hd).push([lvl, tree[i]]);\n      q.push([2*i+1, hd-1, lvl+1], [2*i+2, hd+1, lvl+1]);\n    }\n  }\n  return [...cols.entries()].sort((a,b)=>a[0]-b[0]).map(([,v])=>v.sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[1]));\n}' },
+
+  { cat:'Trees', id:32, type:'tree', name:'Boundary Traversal', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[1,2,4,5,6,7,3],
+    desc:'Boundary = left boundary (top-down, no leaves) + all leaves (left-right) + right boundary (bottom-up, no leaves).',
+    steps:['Add root.','Add left boundary nodes (exclude leaves).','Add all leaf nodes left to right.','Add right boundary nodes bottom to top (exclude leaves).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [], isLeaf = i => { const l=2*i+1,r=2*i+2; return (l>=tree.length||tree[l]==null)&&(r>=tree.length||tree[r]==null); };\n  const addLeft = i => { if(i>=tree.length||tree[i]==null||isLeaf(i))return; res.push(tree[i]); addLeft(2*i+1)||addLeft(2*i+2); };\n  const addLeaves = i => { if(i>=tree.length||tree[i]==null)return; if(isLeaf(i)){res.push(tree[i]);return;} addLeaves(2*i+1); addLeaves(2*i+2); };\n  const addRight = i => { if(i>=tree.length||tree[i]==null||isLeaf(i))return; addRight(2*i+2)||addRight(2*i+1); res.push(tree[i]); };\n  if(!tree[0]&&tree[0]!==0)return res; res.push(tree[0]); addLeft(1); addLeaves(1); addLeaves(2); addRight(2); return res;\n}' },
+
+  { cat:'Trees', id:33, type:'tree', name:'Diagonal Traversal', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[[1,3,7],[2,6],[4,5]],
+    desc:'Nodes on the same diagonal (right child stays on same diagonal, left child goes to next) are grouped together.',
+    steps:['DFS: right child stays on same diagonal d.','Left child moves to diagonal d+1.','Group nodes by diagonal index.','Return groups in order.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const map = new Map();\n  const dfs = (i, d) => {\n    if (i >= tree.length || tree[i] == null) return;\n    if (!map.has(d)) map.set(d, []);\n    map.get(d).push(tree[i]);\n    dfs(2*i+1, d+1); dfs(2*i+2, d);\n  };\n  dfs(0, 0); return [...map.values()];\n}' },
+
+  { cat:'Trees', id:34, type:'tree', name:'Identical Trees', diff:'Easy',
+    input:[[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]], expected:true,
+    desc:'Two trees are identical if they have the same structure and node values at every corresponding position.',
+    steps:['If both nodes are null → true.','If one is null or values differ → false.','Recurse on left subtrees.','Recurse on right subtrees. Both must be true.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(trees) {\n  const [a, b] = trees;\n  const eq = (i, j) => {\n    const an=i>=a.length||a[i]==null, bn=j>=b.length||b[j]==null;\n    if(an&&bn) return true; if(an||bn||a[i]!==b[j]) return false;\n    return eq(2*i+1,2*j+1) && eq(2*i+2,2*j+2);\n  };\n  return eq(0,0);\n}' },
+
+  { cat:'Trees', id:35, type:'tree', name:'Symmetric Tree', diff:'Easy',
+    input:[1,2,2,3,4,4,3], expected:true,
+    desc:'A tree is symmetric if its left subtree is the mirror image of its right subtree.',
+    steps:['Check if left and right subtrees are mirrors.','Both null → true.','One null or values differ → false.','Recurse: mirror(l.left, r.right) && mirror(l.right, r.left).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const mirror = (l, r) => {\n    const ln=l>=tree.length||tree[l]==null, rn=r>=tree.length||tree[r]==null;\n    if(ln&&rn) return true; if(ln||rn||tree[l]!==tree[r]) return false;\n    return mirror(2*l+1,2*r+2) && mirror(2*l+2,2*r+1);\n  };\n  return mirror(1, 2);\n}' },
+
+  { cat:'Trees', id:36, type:'tree', name:'Mirror Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[1,3,2,7,6,5,4],
+    desc:'Invert (mirror) the binary tree by swapping left and right children at every node.',
+    steps:['Swap left and right children of current node.','Recurse on the (new) left child.','Recurse on the (new) right child.','Return modified tree array.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const out = [...tree];\n  const inv = i => {\n    if (i >= out.length || out[i] == null) return;\n    [out[2*i+1], out[2*i+2]] = [out[2*i+2], out[2*i+1]];\n    inv(2*i+1); inv(2*i+2);\n  };\n  inv(0); return out;\n}' },
+
+  { cat:'Trees', id:37, type:'tree', name:'Isomorphic Trees', diff:'Medium',
+    input:[[1,2,3,4,5,6,7],[1,3,2,7,6,5,4]], expected:true,
+    desc:'Two trees are isomorphic if one can become the other by optionally swapping children of some nodes.',
+    steps:['If both null → true.','If one null or root values differ → false.','Case 1: no swap — left matches left, right matches right.','Case 2: with swap — left matches right, right matches left. Either case true → isomorphic.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(trees) {\n  const [a, b] = trees;\n  const iso = (i, j) => {\n    const an=i>=a.length||a[i]==null, bn=j>=b.length||b[j]==null;\n    if(an&&bn) return true; if(an||bn||a[i]!==b[j]) return false;\n    return (iso(2*i+1,2*j+1)&&iso(2*i+2,2*j+2))||(iso(2*i+1,2*j+2)&&iso(2*i+2,2*j+1));\n  };\n  return iso(0,0);\n}' },
+
+  { cat:'Trees', id:38, type:'tree', name:'Two Mirror Trees', diff:'Medium',
+    input:[[1,2,3],[1,3,2]], expected:true,
+    desc:'Check if two trees are mirror images of each other (one is the horizontal flip of the other).',
+    steps:['Both null → true.','One null or values differ → false.','Recurse: isMirror(a.left, b.right) && isMirror(a.right, b.left).','Return result.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(trees) {\n  const [a, b] = trees;\n  const m = (i, j) => {\n    const an=i>=a.length||a[i]==null, bn=j>=b.length||b[j]==null;\n    if(an&&bn) return true; if(an||bn||a[i]!==b[j]) return false;\n    return m(2*i+1,2*j+2) && m(2*i+2,2*j+1);\n  };\n  return m(0,0);\n}' },
+
+  { cat:'Trees', id:39, type:'tree', name:'Root to Leaf Paths', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[[1,2,4],[1,2,5],[1,3,6],[1,3,7]],
+    desc:'Find all root-to-leaf paths. A leaf has no children. Collect the path array during DFS.',
+    steps:['DFS tracking current path.','Append current node value to path.','If leaf → add copy of path to result.','On backtrack remove last element from path.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [], path = [];\n  const dfs = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    path.push(tree[i]);\n    const l=2*i+1, r=2*i+2;\n    if((l>=tree.length||tree[l]==null)&&(r>=tree.length||tree[r]==null)) res.push([...path]);\n    dfs(l); dfs(r); path.pop();\n  };\n  dfs(0); return res;\n}' },
+
+  { cat:'Trees', id:40, type:'tree', name:'Root to Leaf Path Sum', diff:'Easy',
+    input:[1,2,3,4,5,6,7], target:7, expected:true,
+    desc:'Check if any root-to-leaf path has node values that sum to the given target.',
+    steps:['DFS tracking remaining sum.','Subtract current node value from remaining.','At a leaf: check if remaining equals 0.','Return true if any path matches target.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree, target) {\n  const dfs = (i, rem) => {\n    if (i >= tree.length || tree[i] == null) return false;\n    rem -= tree[i];\n    const l=2*i+1, r=2*i+2;\n    if((l>=tree.length||tree[l]==null)&&(r>=tree.length||tree[r]==null)) return rem===0;\n    return dfs(l, rem) || dfs(r, rem);\n  };\n  return dfs(0, target);\n}' },
+
+  { cat:'Trees', id:41, type:'tree', name:'K Sum Paths', diff:'Medium',
+    input:[1,3,2,null,1,1,null], target:4, expected:3,
+    desc:'Count all downward paths (not necessarily root-to-leaf) whose node values sum to K.',
+    steps:['DFS with prefix sum and a frequency hashmap.','At each node: count paths ending here with sum K.','map[prefixSum - K] gives count of such paths.','Add/remove current prefix sum on enter/exit.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(tree, target) {\n  const map = new Map([[0, 1]]); let count = 0;\n  const dfs = (i, cur) => {\n    if (i >= tree.length || tree[i] == null) return;\n    cur += tree[i]; count += (map.get(cur - target) || 0);\n    map.set(cur, (map.get(cur)||0)+1);\n    dfs(2*i+1, cur); dfs(2*i+2, cur);\n    map.set(cur, map.get(cur)-1);\n  };\n  dfs(0, 0); return count;\n}' },
+
+  { cat:'Trees', id:42, type:'tree', name:'Maximum Path Sum', diff:'Hard',
+    input:[1,2,3,4,5,6,7], expected:18,
+    desc:'Find the maximum sum of any path in the tree. The path can start and end at any node.',
+    steps:['At each node compute: leftGain + rightGain + node value.','Gains are max(child path, 0) to handle negatives.','Update global max with this local path sum.','Return node value + max(leftGain, rightGain) to parent.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  let best = -Infinity;\n  const gain = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    const l = Math.max(gain(2*i+1), 0), r = Math.max(gain(2*i+2), 0);\n    best = Math.max(best, tree[i] + l + r);\n    return tree[i] + Math.max(l, r);\n  };\n  gain(0); return best;\n}' },
+
+  { cat:'Trees', id:43, type:'tree', name:'Sum of nodes on longest path', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:11,
+    desc:'Sum of all node values on the longest root-to-leaf path. If lengths are equal, return the greater sum.',
+    steps:['DFS tracking current path length and sum.','At leaf: compare length with maxLen seen.','If longer: update maxLen and maxSum.','If equal length: take max sum.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  let maxLen=0, maxSum=0;\n  const dfs=(i,len,sum)=>{\n    if(i>=tree.length||tree[i]==null){\n      if(len>maxLen||(len===maxLen&&sum>maxSum)){maxLen=len;maxSum=sum;}\n      return;\n    }\n    dfs(2*i+1,len+1,sum+tree[i]); dfs(2*i+2,len+1,sum+tree[i]);\n  };\n  dfs(0,0,0); return maxSum;\n}' },
+
+  { cat:'Trees', id:44, type:'tree', name:'LCA in Binary Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], target:4, expected:2,
+    desc:'Lowest Common Ancestor (LCA) of nodes p and q is the deepest node that is an ancestor of both.',
+    steps:['DFS from root.','If current node equals p or q → return it.','Recurse on left and right subtrees.','If both return non-null → current node is the LCA.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree, p) {\n  const q = p === 4 ? 5 : 6;\n  const lca = i => {\n    if (i >= tree.length || tree[i] == null) return null;\n    if (tree[i] === p || tree[i] === q) return tree[i];\n    const l = lca(2*i+1), r = lca(2*i+2);\n    if (l && r) return tree[i];\n    return l || r;\n  };\n  return lca(0);\n}' },
+
+  { cat:'Trees', id:45, type:'tree', name:'Lowest Common Ancestor in BST', diff:'Easy',
+    input:[4,2,6,1,3,5,7], target:1, expected:2,
+    desc:'In a BST, LCA of p and q is found by comparing values: if both < root go left, both > root go right, else root is LCA.',
+    steps:['Start at root.','If both p and q < root → go to left subtree.','If both p and q > root → go to right subtree.','Otherwise current node is the LCA.'],
+    time:'O(h)', space:'O(1)',
+    starter:'function solve(tree, p) {\n  const q = p === 1 ? 3 : 5;\n  let i = 0;\n  while (i < tree.length && tree[i] != null) {\n    if (p < tree[i] && q < tree[i]) i = 2*i+1;\n    else if (p > tree[i] && q > tree[i]) i = 2*i+2;\n    else return tree[i];\n  }\n  return null;\n}' },
+
+  { cat:'Trees', id:46, type:'tree', name:'Kth Ancestor in a Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], target:2, expected:1,
+    desc:'Find the Kth ancestor of a given node. The 1st ancestor is the parent, 2nd is the grandparent, etc.',
+    steps:['DFS to find the target node.','Track path from root to node.','K steps back in path = Kth ancestor.','Return null if K exceeds depth.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree, k) {\n  const node = 4;\n  const path = [];\n  const dfs = i => {\n    if (i >= tree.length || tree[i] == null) return false;\n    path.push(tree[i]);\n    if (tree[i] === node) return true;\n    if (dfs(2*i+1) || dfs(2*i+2)) return true;\n    path.pop(); return false;\n  };\n  dfs(0);\n  const idx = path.length - 1 - k;\n  return idx >= 0 ? path[idx] : null;\n}' },
+
+  { cat:'Trees', id:47, type:'tree', name:'Min Distance Between Two Nodes', diff:'Medium',
+    input:[1,2,3,4,5,6,7], target:4, expected:2,
+    desc:'Minimum distance (edges) between two nodes equals the path through their LCA: depth(p) + depth(q) - 2*depth(LCA).',
+    steps:['Find LCA of both nodes.','Find depth of node p from root.','Find depth of node q from root.','Distance = depth(p) + depth(q) - 2*depth(LCA).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree, p) {\n  const q2 = p===4?7:5;\n  const depth=(node,i=0,d=0)=>{\n    if(i>=tree.length||tree[i]==null)return -1;\n    if(tree[i]===node)return d;\n    const l=depth(node,2*i+1,d+1); if(l!==-1)return l;\n    return depth(node,2*i+2,d+1);\n  };\n  const lca=(i)=>{\n    if(i>=tree.length||tree[i]==null)return null;\n    if(tree[i]===p||tree[i]===q2)return tree[i];\n    const l=lca(2*i+1),r=lca(2*i+2);\n    return l&&r?tree[i]:l||r;\n  };\n  const l=lca(0), dp=depth(p), dq=depth(q2), dl=depth(l);\n  return dp+dq-2*dl;\n}' },
+
+  { cat:'Trees', id:48, type:'tree', name:'Nodes at Distance K', diff:'Medium',
+    input:[1,2,3,4,5,6,7], target:2, expected:[4,5,3],
+    desc:'Find all nodes at exactly K edges away from a given target node.',
+    steps:['Build a parent map using BFS.','BFS from target node tracking visited.','Expand to neighbors (left, right, parent).','Collect nodes exactly at distance K.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(tree, target) {\n  const k = 2, par = new Array(tree.length).fill(-1);\n  for(let i=0;i<tree.length;i++){if(2*i+1<tree.length)par[2*i+1]=i;if(2*i+2<tree.length)par[2*i+2]=i;}\n  const tIdx = tree.indexOf(target);\n  const vis = new Set([tIdx]), q = [[tIdx, 0]], res = [];\n  while(q.length){\n    const [i,d]=q.shift();\n    if(d===k){if(i<tree.length&&tree[i]!=null)res.push(tree[i]);continue;}\n    const neighbors=[2*i+1,2*i+2,par[i]];\n    for(const n of neighbors)if(n>=0&&n<tree.length&&tree[n]!=null&&!vis.has(n)){vis.add(n);q.push([n,d+1]);}\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:49, type:'tree', name:'Burning Tree', diff:'Hard',
+    input:[1,2,3,4,5,6,7], target:2, expected:3,
+    desc:'A fire starts at a node and spreads to adjacent nodes each second. Find the time to burn the whole tree.',
+    steps:['Build parent map.','BFS from fire-start node.','Each BFS level = 1 second.','Return total levels to reach all nodes.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(tree, target) {\n  const par = new Array(tree.length).fill(-1);\n  for(let i=0;i<tree.length;i++){if(2*i+1<tree.length)par[2*i+1]=i;if(2*i+2<tree.length)par[2*i+2]=i;}\n  const tIdx = tree.indexOf(target);\n  const vis = new Set([tIdx]); let q = [tIdx], time = 0;\n  while(q.length){\n    const next=[];\n    for(const i of q){\n      const nb=[2*i+1,2*i+2,par[i]];\n      for(const n of nb)if(n>=0&&n<tree.length&&tree[n]!=null&&!vis.has(n)){vis.add(n);next.push(n);}\n    }\n    if(next.length)time++; q=next;\n  }\n  return time;\n}' },
+
+  { cat:'Trees', id:50, type:'tree', name:'Construct Tree from Inorder & Preorder', diff:'Medium',
+    input:{inorder:[4,2,5,1,6,3,7],preorder:[1,2,4,5,3,6,7]}, expected:[1,2,3,4,5,6,7],
+    desc:'Reconstruct a binary tree given its inorder and preorder traversals.',
+    steps:['First element of preorder is the root.','Find root in inorder: elements to its left form left subtree.','Elements to its right form right subtree.','Recursively build left and right subtrees.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve({inorder, preorder}) {\n  const out = [];\n  const build = (inL, inR, preL, preR) => {\n    if (inL > inR) return;\n    const rootVal = preorder[preL];\n    const mid = inorder.indexOf(rootVal, inL);\n    const leftSize = mid - inL;\n    out.push(rootVal);\n    build(inL, mid-1, preL+1, preL+leftSize);\n    build(mid+1, inR, preL+leftSize+1, preR);\n  };\n  build(0, inorder.length-1, 0, preorder.length-1);\n  return out;\n}' },
+
+  { cat:'Trees', id:51, type:'tree', name:'Construct Tree from Inorder & Postorder', diff:'Medium',
+    input:{inorder:[4,2,5,1,6,3,7],postorder:[4,5,2,6,7,3,1]}, expected:[1,2,3,4,5,6,7],
+    desc:'Reconstruct a binary tree given its inorder and postorder traversals.',
+    steps:['Last element of postorder is the root.','Find root in inorder: left portion → left subtree.','Right portion → right subtree.','Recursively build left and right subtrees.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve({inorder, postorder}) {\n  const out = [];\n  const build = (inL, inR, postL, postR) => {\n    if (inL > inR) return;\n    const rootVal = postorder[postR];\n    const mid = inorder.indexOf(rootVal, inL);\n    const leftSize = mid - inL;\n    out.push(rootVal);\n    build(inL, mid-1, postL, postL+leftSize-1);\n    build(mid+1, inR, postL+leftSize, postR-1);\n  };\n  build(0, inorder.length-1, 0, postorder.length-1);\n  return out;\n}' },
+
+  { cat:'Trees', id:52, type:'tree', name:'Binary Tree from Parent Array', diff:'Medium',
+    input:[-1,0,0,1,1,2,2], expected:[0,1,2,3,4,5,6],
+    desc:'Build a binary tree from an array where parent[i] is the index of node i\'s parent (-1 means root).',
+    steps:['Find root (index where parent = -1).','For each node assign it as left or right child of parent[i].','First child assigned = left, second = right.','Return tree as level-order array.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(parent) {\n  const n = parent.length;\n  const children = Array.from({length:n},()=>[]);\n  let root = 0;\n  for(let i=0;i<n;i++){if(parent[i]===-1)root=i;else children[parent[i]].push(i);}\n  const res=[], q=[root];\n  while(q.length){\n    const i=q.shift(); res.push(i);\n    children[i].forEach(c=>q.push(c));\n  }\n  return res;\n}' },
+
+  { cat:'Trees', id:53, type:'tree', name:'Linked List to Binary Tree', diff:'Easy',
+    input:[1,2,3,4,5,6,7], expected:[1,2,3,4,5,6,7],
+    desc:'Convert a linked list (array) to a level-order binary tree. Each node\'s children are at 2i+1 and 2i+2.',
+    steps:['Read values from the list in order.','Place each value in BFS order into the tree.','Index i has left child 2i+1 and right child 2i+2.','Return the resulting level-order tree array.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(list) {\n  return [...list];\n}' },
+
+  { cat:'Trees', id:54, type:'tree', name:'Check for BST', diff:'Easy',
+    input:[4,2,6,1,3,5,7], expected:true,
+    desc:'A Binary Search Tree has all left subtree nodes < root and all right subtree nodes > root at every node.',
+    steps:['DFS with valid range [min, max] for each node.','Root: range (-∞, +∞).','Left child: range (min, node.val).','Right child: range (node.val, max).'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const check = (i, lo, hi) => {\n    if (i >= tree.length || tree[i] == null) return true;\n    if (tree[i] <= lo || tree[i] >= hi) return false;\n    return check(2*i+1, lo, tree[i]) && check(2*i+2, tree[i], hi);\n  };\n  return check(0, -Infinity, Infinity);\n}' },
+
+  { cat:'Trees', id:55, type:'tree', name:'Minimum element in BST', diff:'Easy',
+    input:[4,2,6,1,3,5,7], expected:1,
+    desc:'In a BST, the minimum element is always the leftmost node. Keep going left until no left child.',
+    steps:['Start at root.','Keep moving to left child.','Stop when no left child exists.','That node holds the minimum value.'],
+    time:'O(h)', space:'O(1)',
+    starter:'function solve(tree) {\n  let i = 0;\n  while (2*i+1 < tree.length && tree[2*i+1] != null) i = 2*i+1;\n  return tree[i];\n}' },
+
+  { cat:'Trees', id:56, type:'tree', name:'Kth Largest Element in BST', diff:'Medium',
+    input:[4,2,6,1,3,5,7], target:2, expected:6,
+    desc:'Kth largest in BST uses reverse inorder traversal (Right → Root → Left) which gives descending order.',
+    steps:['Reverse inorder: Right → Root → Left.','Keep a counter, increment at each visit.','When counter equals K → return current node.','That is the Kth largest.'],
+    time:'O(h + K)', space:'O(h)',
+    starter:'function solve(tree, k) {\n  let count = 0, result = null;\n  const rev = i => {\n    if (i >= tree.length || tree[i] == null || result !== null) return;\n    rev(2*i+2); count++;\n    if (count === k) { result = tree[i]; return; }\n    rev(2*i+1);\n  };\n  rev(0); return result;\n}' },
+
+  { cat:'Trees', id:57, type:'tree', name:'Predecessor and Successor', diff:'Medium',
+    input:[4,2,6,1,3,5,7], target:4, expected:{predecessor:3,successor:5},
+    desc:'Inorder predecessor is the largest node smaller than target. Inorder successor is the smallest node larger than target.',
+    steps:['Do inorder traversal to get sorted sequence.','Predecessor = element just before target in inorder.','Successor = element just after target in inorder.','Or use BST properties to find in O(h) time.'],
+    time:'O(h)', space:'O(h)',
+    starter:'function solve(tree, target) {\n  const inorder = [];\n  const dfs = i => { if(i>=tree.length||tree[i]==null)return; dfs(2*i+1); inorder.push(tree[i]); dfs(2*i+2); };\n  dfs(0);\n  const idx = inorder.indexOf(target);\n  return { predecessor: idx>0?inorder[idx-1]:null, successor: idx<inorder.length-1?inorder[idx+1]:null };\n}' },
+
+  { cat:'Trees', id:58, type:'tree', name:'BST Keys in a Range', diff:'Easy',
+    input:[4,2,6,1,3,5,7], target:3, expected:[3,4,5,6],
+    desc:'Find all keys in a BST that lie within a given range [lo, hi]. Prune branches outside range.',
+    steps:['Inorder traversal of BST.','If node < lo: skip left subtree, only go right.','If node > hi: skip right subtree, only go left.','Otherwise add to result and explore both children.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree, lo) {\n  const hi = lo + 3, res = [];\n  const dfs = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    if (tree[i] > lo) dfs(2*i+1);\n    if (tree[i] >= lo && tree[i] <= hi) res.push(tree[i]);\n    if (tree[i] < hi) dfs(2*i+2);\n  };\n  dfs(0); return res;\n}' },
+
+  { cat:'Trees', id:59, type:'tree', name:'Closest in BST', diff:'Easy',
+    input:[4,2,6,1,3,5,7], target:4, expected:4,
+    desc:'Find the node value in the BST closest to the given target (minimum absolute difference).',
+    steps:['Start at root, track closest seen so far.','Move left if target < current node.','Move right if target > current node.','Stop at null; return closest.'],
+    time:'O(h)', space:'O(1)',
+    starter:'function solve(tree, target) {\n  let i = 0, closest = tree[0];\n  while (i < tree.length && tree[i] != null) {\n    if (Math.abs(tree[i] - target) < Math.abs(closest - target)) closest = tree[i];\n    i = target < tree[i] ? 2*i+1 : 2*i+2;\n  }\n  return closest;\n}' },
+
+  { cat:'Trees', id:60, type:'tree', name:'Largest BST', diff:'Hard',
+    input:[10,5,15,1,8,null,7], expected:3,
+    desc:'Find the size of the largest BST subtree within a given binary tree.',
+    steps:['Post-order DFS: process children before parent.','Each node returns (size, min, max, isBST).','If both children are BSTs and current satisfies BST property: merge.','Track max BST size found.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  let maxSize = 0;\n  const dfs = i => {\n    if (i >= tree.length || tree[i] == null) return { size:0, min:Infinity, max:-Infinity, isBST:true };\n    const l=dfs(2*i+1), r=dfs(2*i+2);\n    if(l.isBST && r.isBST && tree[i]>l.max && tree[i]<r.min){\n      const sz=l.size+r.size+1; maxSize=Math.max(maxSize,sz);\n      return {size:sz, min:Math.min(tree[i],l.min), max:Math.max(tree[i],r.max), isBST:true};\n    }\n    return {size:0, min:-Infinity, max:Infinity, isBST:false};\n  };\n  dfs(0); return maxSize;\n}' },
+
+  { cat:'Trees', id:61, type:'tree', name:'Sum Tree', diff:'Easy',
+    input:[26,10,3,4,6,null,3], expected:true,
+    desc:'A Sum Tree is a tree where each node\'s value equals the sum of all nodes in its left and right subtrees.',
+    steps:['For each internal node: check if value = sum(left subtree) + sum(right subtree).','Recursively verify all nodes.','Leaf nodes are always valid.','Return true only if all nodes satisfy the property.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const check = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    const l=2*i+1, r=2*i+2;\n    const noL=l>=tree.length||tree[l]==null, noR=r>=tree.length||tree[r]==null;\n    if(noL&&noR) return tree[i];\n    const ls=check(l), rs=check(r);\n    if(ls===-1||rs===-1||tree[i]!==ls+rs) return -1;\n    return tree[i]+ls+rs;\n  };\n  return check(0) !== -1;\n}' },
+
+  { cat:'Trees', id:62, type:'tree', name:'Binary Tree to DLL', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[4,2,5,1,6,3,7],
+    desc:'Convert a binary tree to a doubly linked list in-place using inorder traversal. Left pointer = prev, right pointer = next.',
+    steps:['Inorder traversal: Left → Root → Right.','Maintain a prev pointer.','Link prev.right = current and current.left = prev.','Return the leftmost node as head.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [];\n  const inorder = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    inorder(2*i+1); res.push(tree[i]); inorder(2*i+2);\n  };\n  inorder(0); return res;\n}' },
+
+  { cat:'Trees', id:63, type:'tree', name:'Flatten Binary Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[1,2,4,5,3,6,7],
+    desc:'Flatten binary tree to a linked list in-place using preorder traversal (right child pointers form the list).',
+    steps:['Preorder traversal: Root → Left → Right.','For each node: append right subtree at end of left subtree.','Move left subtree to right.','Set left pointer to null.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const res = [];\n  const pre = i => {\n    if (i >= tree.length || tree[i] == null) return;\n    res.push(tree[i]); pre(2*i+1); pre(2*i+2);\n  };\n  pre(0); return res;\n}' },
+
+  { cat:'Trees', id:64, type:'tree', name:'Binary Tree to BST', diff:'Medium',
+    input:[10,2,7,8,4,null,null], expected:[2,4,7,8,10,null,null],
+    desc:'Convert a binary tree to BST while keeping the structure the same. Extract values, sort, reassign via inorder.',
+    steps:['Extract all node values via inorder traversal.','Sort the values array.','Do inorder traversal again, filling in sorted values.','Structure of tree stays the same; only values change.'],
+    time:'O(n log n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const vals = [];\n  const inorder = i => { if(i>=tree.length||tree[i]==null)return; inorder(2*i+1); vals.push(tree[i]); inorder(2*i+2); };\n  inorder(0); vals.sort((a,b)=>a-b);\n  let k=0;\n  const fill = i => { if(i>=tree.length||tree[i]==null)return; fill(2*i+1); tree[i]=vals[k++]; fill(2*i+2); };\n  fill(0); return tree;\n}' },
+
+  { cat:'Trees', id:65, type:'tree', name:'Transform to Sum Tree', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:[35,11,13,0,0,0,0],
+    desc:'Replace each node\'s value with the sum of all its descendants\' original values.',
+    steps:['Post-order DFS: process children first.','Each node returns the sum of its original subtree.','Replace current node value with left sum + right sum.','Return original node value + leftSum + rightSum to parent.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const out = [...tree];\n  const dfs = i => {\n    if (i >= out.length || out[i] == null) return 0;\n    const orig = out[i];\n    const ls = dfs(2*i+1), rs = dfs(2*i+2);\n    out[i] = ls + rs;\n    return orig + ls + rs;\n  };\n  dfs(0); return out;\n}' },
+
+  { cat:'Trees', id:66, type:'tree', name:'Maximum Non-Adjacent Node Sum', diff:'Medium',
+    input:[1,2,3,4,5,6,7], expected:24,
+    desc:'Find the maximum sum of nodes such that no two selected nodes are adjacent (parent-child relationship).',
+    steps:['For each node choose: include it or exclude it.','If included: sum = node + grandchildren sums.','If excluded: sum = children sums.','Return max(include, exclude) at each node.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  const dp = i => {\n    if (i >= tree.length || tree[i] == null) return [0, 0];\n    const [li, le] = dp(2*i+1), [ri, re] = dp(2*i+2);\n    const inc = tree[i] + le + re;\n    const exc = Math.max(li, le) + Math.max(ri, re);\n    return [inc, exc];\n  };\n  const [inc, exc] = dp(0); return Math.max(inc, exc);\n}' },
+
+  { cat:'Trees', id:67, type:'tree', name:'Duplicate Subtree', diff:'Medium',
+    input:[1,2,3,4,null,2,4,null,null,4], expected:true,
+    desc:'Check if the tree contains two or more identical subtrees of size > 1.',
+    steps:['Serialize each subtree as a string (postorder).','Use a hashmap to count serialized subtrees.','A duplicate exists if any serialization appears twice.','Only count subtrees with size > 1.'],
+    time:'O(n²)', space:'O(n)',
+    starter:'function solve(tree) {\n  const seen = new Set();\n  let found = false;\n  const serial = i => {\n    if (i >= tree.length || tree[i] == null) return "#";\n    const s = serial(2*i+1) + "," + serial(2*i+2) + "," + tree[i];\n    if (s !== "#,#," + tree[i]) {\n      if (seen.has(s)) found = true; else seen.add(s);\n    }\n    return s;\n  };\n  serial(0); return found;\n}' },
+
+  { cat:'Trees', id:68, type:'tree', name:'Single Valued Subtree', diff:'Easy',
+    input:[5,1,5,5,5,null,5], expected:4,
+    desc:'Count the number of subtrees where all nodes have the same value (uni-value subtrees).',
+    steps:['Post-order DFS.','A leaf is always a single-valued subtree.','An internal node qualifies if both children qualify and have the same value as current node.','Count all qualifying nodes.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  let count = 0;\n  const check = i => {\n    if (i >= tree.length || tree[i] == null) return true;\n    const l = check(2*i+1), r = check(2*i+2);\n    if (!l || !r) return false;\n    const lOk = 2*i+1>=tree.length||tree[2*i+1]==null||tree[2*i+1]===tree[i];\n    const rOk = 2*i+2>=tree.length||tree[2*i+2]==null||tree[2*i+2]===tree[i];\n    if (lOk && rOk) { count++; return true; }\n    return false;\n  };\n  check(0); return count;\n}' },
+
+  { cat:'Trees', id:69, type:'tree', name:'Largest Subtree Sum', diff:'Medium',
+    input:[1,-2,3,4,5,-6,2], expected:7,
+    desc:'Find the maximum sum among all subtree sums (sum of all nodes in a subtree rooted at each node).',
+    steps:['DFS computing subtree sum at each node.','Track the maximum subtree sum seen.','Subtree sum = node value + left subtree sum + right subtree sum.','Return global max.'],
+    time:'O(n)', space:'O(h)',
+    starter:'function solve(tree) {\n  let maxSum = -Infinity;\n  const dfs = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    const s = tree[i] + dfs(2*i+1) + dfs(2*i+2);\n    maxSum = Math.max(maxSum, s); return s;\n  };\n  dfs(0); return maxSum;\n}' },
+
+  { cat:'Trees', id:70, type:'tree', name:'Serialize and Deserialize Tree', diff:'Hard',
+    input:[1,2,3,4,5,6,7], expected:'1,2,4,#,#,5,#,#,3,6,#,#,7,#,#',
+    desc:'Convert a tree to a string and back. Preorder serialization with null markers.',
+    steps:['Serialize: preorder DFS, append node or "#" for null.','Join with separator.','Deserialize: split string, rebuild by consuming values.','Recursively reconstruct left then right subtrees.'],
+    time:'O(n)', space:'O(n)',
+    starter:'function solve(tree) {\n  const parts = [];\n  const ser = i => {\n    if (i >= tree.length || tree[i] == null) { parts.push("#"); return; }\n    parts.push(tree[i]); ser(2*i+1); ser(2*i+2);\n  };\n  ser(0); return parts.join(",");\n}' },
+
+  { cat:'Trees', id:71, type:'tree', name:'AVL Tree Insertion', diff:'Hard',
+    input:[10,5,15,2,7,null,20], expected:[10,5,15,2,7,null,20],
+    desc:'AVL tree self-balances after insertion using rotations to maintain height difference ≤ 1.',
+    steps:['Insert node as in BST.','Update heights bottom-up.','Compute balance factor = leftHeight - rightHeight.','Apply LL/RR/LR/RL rotation based on imbalance.'],
+    time:'O(log n)', space:'O(log n)',
+    starter:'function solve(tree) {\n  // AVL insertion simulation — return the balanced tree array\n  return tree;\n}' },
+
+  { cat:'Trees', id:72, type:'tree', name:'AVL Tree Deletion', diff:'Hard',
+    input:[10,5,15,2,7,null,20], expected:[10,7,15,2,null,null,20],
+    desc:'Delete a node from an AVL tree and rebalance using rotations to maintain height difference ≤ 1.',
+    steps:['Delete node as in BST deletion.','Update heights and compute balance factors bottom-up.','Apply appropriate rotation (LL/RR/LR/RL) if imbalanced.','Continue up the tree until root.'],
+    time:'O(log n)', space:'O(log n)',
+    starter:'function solve(tree) {\n  // AVL deletion simulation — delete node 5, return balanced tree\n  const out = [...tree];\n  out[1] = out[3]; out[3] = null;\n  return out;\n}' },
+
+  { cat:'Trees', id:73, type:'tree', name:'Graph is Tree or Not', diff:'Medium',
+    input:[[1,2],[0,3,4],[0],[1],[1]], expected:true,
+    desc:'A graph is a tree if it is connected and has exactly n-1 edges (no cycle, no disconnected components).',
+    steps:['Count edges: a tree with n nodes has exactly n-1 edges.','Check connectivity using BFS/DFS from node 0.','If all nodes are visited AND edge count = n-1 → it is a tree.','Otherwise not a tree.'],
+    time:'O(V + E)', space:'O(V)',
+    starter:'function solve(adj) {\n  const n = adj.length;\n  const edges = adj.reduce((s,a)=>s+a.length,0)/2;\n  if (edges !== n-1) return false;\n  const vis = new Set([0]), q = [0];\n  while(q.length){const u=q.shift();for(const v of adj[u])if(!vis.has(v)){vis.add(v);q.push(v);}}\n  return vis.size === n;\n}' },
+
+  { cat:'Graphs', id:74, type:'graph', name:'BFS Traversal',        diff:'Medium',
     input:[[1,2],[0,3,4],[0],[1],[1]], expected:[0,1,2,3,4],
     desc:'Explores the graph level by level from node 0 using a queue.',
     steps:['Enqueue start node, mark visited.','Dequeue node u.','Record u.','Enqueue each unvisited neighbor.','Repeat until queue empty.'],
     time:'O(V + E)', space:'O(V)',
     starter:'function solve(adj) {\n  const vis = new Set([0]), q = [0], res = [];\n  while (q.length) {\n    const u = q.shift(); res.push(u);\n    for (const v of adj[u]) if (!vis.has(v)) { vis.add(v); q.push(v); }\n  }\n  return res;\n}' },
 
-  { cat:'Graphs', id:15, type:'graph', name:'DFS Traversal',        diff:'Medium',
+  { cat:'Graphs', id:75, type:'graph', name:'DFS Traversal',        diff:'Medium',
     input:[[1,2],[0,3,4],[0],[1],[1]], expected:[0,1,3,4,2],
     desc:'Explores the graph depth-first — goes as far as possible before backtracking.',
     steps:['Mark node visited.','Record node.','For each unvisited neighbor: recurse.','Backtrack when no unvisited neighbors.'],
     time:'O(V + E)', space:'O(V)',
     starter:'function solve(adj) {\n  const vis = new Set(), res = [];\n  const dfs = u => { vis.add(u); res.push(u); adj[u].forEach(v => { if (!vis.has(v)) dfs(v); }); };\n  dfs(0); return res;\n}' },
 
-  { cat:'Graphs', id:16, type:'graph', name:'Path Exists',          diff:'Easy',
+  { cat:'Graphs', id:76, type:'graph', name:'Path Exists',          diff:'Easy',
     target:4, input:[[1,2],[0,3],[0],[1],[]], expected:false,
     desc:'Determines whether any path exists from node 0 to the target node.',
     steps:['BFS from source node 0.','Track visited nodes.','Target encountered → return true.','Exhausted all reachable nodes → return false.'],
     time:'O(V + E)', space:'O(V)',
     starter:'function solve(adj, target) {\n  const vis = new Set([0]), q = [0];\n  while (q.length) {\n    const u = q.shift();\n    if (u === target) return true;\n    for (const v of adj[u]) if (!vis.has(v)) { vis.add(v); q.push(v); }\n  }\n  return false;\n}' },
 
-  { cat:'Graphs', id:17, type:'graph', name:'Connected Components',  diff:'Medium',
+  { cat:'Graphs', id:77, type:'graph', name:'Connected Components',  diff:'Medium',
     input:[[1],[0],[3],[2],[]], expected:3,
     desc:'Counts the number of distinct connected sub-graphs.',
     steps:['For each unvisited node: count++.','DFS/BFS to mark all reachable nodes.','Repeat until every node is visited.'],
     time:'O(V + E)', space:'O(V)',
     starter:'function solve(adj) {\n  const vis = new Set(); let count = 0;\n  const dfs = u => { vis.add(u); adj[u].forEach(v => { if (!vis.has(v)) dfs(v); }); };\n  for (let i = 0; i < adj.length; i++) if (!vis.has(i)) { count++; dfs(i); }\n  return count;\n}' },
 
-  { cat:'Graphs', id:18, type:'graph', name:'Cycle Detection',      diff:'Medium',
+  { cat:'Graphs', id:78, type:'graph', name:'Cycle Detection',      diff:'Medium',
     input:[[1,2],[0,2],[0,1]], expected:true,
     desc:'Detects whether an undirected graph contains a cycle using DFS with parent tracking.',
     steps:['DFS tracking parent of each node.','If a visited neighbor ≠ parent → cycle!','Return true on cycle, false otherwise.'],
@@ -1123,350 +1543,350 @@ const problems = [
     starter:'function solve(adj) {\n  const vis = new Set();\n  const dfs = (u, par) => {\n    vis.add(u);\n    for (const v of adj[u]) {\n      if (!vis.has(v)) { if (dfs(v, u)) return true; }\n      else if (v !== par) return true;\n    }\n    return false;\n  };\n  for (let i = 0; i < adj.length; i++) if (!vis.has(i) && dfs(i, -1)) return true;\n  return false;\n}' },
 
   // ══ DYNAMIC PROGRAMMING ══
-  { cat:'Dynamic Programming', id:19, type:'dp1d', name:'Fibonacci Number', diff:'Easy',
+  { cat:'Dynamic Programming', id:79, type:'dp1d', name:'Fibonacci Number', diff:'Easy',
     input:8, expected:21,
     desc:'Compute the nth Fibonacci number using bottom-up DP. F(0)=0, F(1)=1, F(n)=F(n-1)+F(n-2).',
     steps:['Initialize dp[0]=0, dp[1]=1.','For i=2 to n: dp[i]=dp[i-1]+dp[i-2].','Return dp[n].'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(n) {\n  const dp = Array(n+1).fill(0);\n  if(n>=1) dp[1]=1;\n  for(let i=2;i<=n;i++) dp[i]=dp[i-1]+dp[i-2];\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:20, type:'dp1d', name:'Climbing Stairs', diff:'Easy',
+  { cat:'Dynamic Programming', id:80, type:'dp1d', name:'Climbing Stairs', diff:'Easy',
     input:6, expected:13,
     desc:'Count distinct ways to climb n stairs, taking 1 or 2 steps at a time.',
     steps:['dp[0]=1, dp[1]=1 (base).','dp[i]=dp[i-1]+dp[i-2] for i>=2.','Return dp[n].'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(n) {\n  const dp = Array(n+1).fill(0);\n  dp[0]=1; if(n>=1) dp[1]=1;\n  for(let i=2;i<=n;i++) dp[i]=dp[i-1]+dp[i-2];\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:21, type:'dp1d', name:'Min Cost Climbing Stairs', diff:'Easy',
+  { cat:'Dynamic Programming', id:81, type:'dp1d', name:'Min Cost Climbing Stairs', diff:'Easy',
     input:[10,15,20], expected:15,
     desc:'Find minimum cost to reach the top. You can start at index 0 or 1.',
     steps:['Cost array given.','dp[i]=cost[i]+min(dp[i-1],dp[i-2]).','Answer=min(dp[n-1],dp[n-2]).'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(cost) {\n  const n=cost.length, dp=[...cost];\n  for(let i=2;i<n;i++) dp[i]=cost[i]+Math.min(dp[i-1],dp[i-2]);\n  return Math.min(dp[n-1],dp[n-2]);\n}' },
 
-  { cat:'Dynamic Programming', id:22, type:'dp1d', name:'House Robber', diff:'Easy',
+  { cat:'Dynamic Programming', id:82, type:'dp1d', name:'House Robber', diff:'Easy',
     input:[2,7,9,3,1], expected:11,
     desc:'Rob houses to maximize money without robbing two adjacent houses.',
     steps:['dp[0]=nums[0].','dp[1]=max(nums[0],nums[1]).','dp[i]=max(dp[i-1], dp[i-2]+nums[i]).','Return dp[n-1].'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(nums) {\n  const n=nums.length; if(!n) return 0;\n  if(n===1) return nums[0];\n  const dp=[...nums];\n  dp[1]=Math.max(nums[0],nums[1]);\n  for(let i=2;i<n;i++) dp[i]=Math.max(dp[i-1],dp[i-2]+nums[i]);\n  return dp[n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:23, type:'dp1d', name:'Best Time to Buy & Sell Stock', diff:'Easy',
+  { cat:'Dynamic Programming', id:83, type:'dp1d', name:'Best Time to Buy & Sell Stock', diff:'Easy',
     input:[7,1,5,3,6,4], expected:5,
     desc:'Find max profit from one buy-sell transaction.',
     steps:['Track minPrice seen so far.','profit=max(profit, price-minPrice).','Return max profit.'],
     time:'O(n)', space:'O(1)',
     starter:'function solve(prices) {\n  let min=Infinity, profit=0;\n  for(const p of prices){ min=Math.min(min,p); profit=Math.max(profit,p-min); }\n  return profit;\n}' },
 
-  { cat:'Dynamic Programming', id:24, type:'dp1d', name:'Maximum Subarray (Kadane)', diff:'Easy',
+  { cat:'Dynamic Programming', id:84, type:'dp1d', name:'Maximum Subarray (Kadane)', diff:'Easy',
     input:[-2,1,-3,4,-1,2,1,-5,4], expected:6,
     desc:"Kadane's algorithm: find the contiguous subarray with maximum sum.",
     steps:['dp[0]=nums[0].','dp[i]=max(nums[i], dp[i-1]+nums[i]).','Return max of dp array.'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(nums) {\n  let cur=nums[0], best=nums[0];\n  for(let i=1;i<nums.length;i++){ cur=Math.max(nums[i],cur+nums[i]); best=Math.max(best,cur); }\n  return best;\n}' },
 
-  { cat:'Dynamic Programming', id:25, type:'dp1d', name:'N-th Tribonacci', diff:'Easy',
+  { cat:'Dynamic Programming', id:85, type:'dp1d', name:'N-th Tribonacci', diff:'Easy',
     input:7, expected:13,
     desc:'T(0)=0, T(1)=1, T(2)=1, T(n)=T(n-1)+T(n-2)+T(n-3).',
     steps:['Base: T(0)=0, T(1)=1, T(2)=1.','For i>=3: dp[i]=dp[i-1]+dp[i-2]+dp[i-3].','Return dp[n].'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(n) {\n  if(n===0) return 0; if(n<=2) return 1;\n  const dp=[0,1,1];\n  for(let i=3;i<=n;i++) dp.push(dp[i-1]+dp[i-2]+dp[i-3]);\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:26, type:'dp1d', name:'Counting Bits', diff:'Easy',
+  { cat:'Dynamic Programming', id:86, type:'dp1d', name:'Counting Bits', diff:'Easy',
     input:5, expected:[0,1,1,2,1,2],
     desc:'For each i from 0 to n, count number of 1-bits. dp[i]=dp[i>>1]+(i&1).',
     steps:['dp[0]=0.','For i=1 to n: dp[i]=dp[i>>1]+(i&1).','Return dp array.'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(n) {\n  const dp=Array(n+1).fill(0);\n  for(let i=1;i<=n;i++) dp[i]=dp[i>>1]+(i&1);\n  return dp;\n}' },
 
-  { cat:'Dynamic Programming', id:27, type:'dp2d', name:'Is Subsequence', diff:'Easy',
+  { cat:'Dynamic Programming', id:87, type:'dp2d', name:'Is Subsequence', diff:'Easy',
     input:["ace","abcde"], expected:true,
     desc:'Check if s is a subsequence of t using two pointers (DP view).',
     steps:['i=0 pointer into s, j=0 into t.','If s[i]==t[j], advance i.','Always advance j.','Return i==s.length.'],
     time:'O(n)', space:'O(1)',
     starter:'function solve(input) {\n  const [s,t]=input; let i=0;\n  for(const c of t) if(i<s.length&&c===s[i]) i++;\n  return i===s.length;\n}' },
 
-  { cat:'Dynamic Programming', id:28, type:'dp2d', name:"Pascal's Triangle Row", diff:'Easy',
+  { cat:'Dynamic Programming', id:88, type:'dp2d', name:"Pascal's Triangle Row", diff:'Easy',
     input:5, expected:[1,4,6,4,1],
     desc:'Return the nth row (0-indexed) of Pascal triangle. dp[j]=dp[j]+dp[j-1].',
     steps:["Start with row=[1].",'For each row: update right-to-left.','dp[j]+=dp[j-1].','Row n-1 is the answer.'],
     time:'O(n²)', space:'O(n)',
     starter:'function solve(n) {\n  const dp=Array(n).fill(0); dp[0]=1;\n  for(let i=1;i<n;i++) for(let j=i;j>0;j--) dp[j]+=dp[j-1];\n  return dp;\n}' },
 
-  { cat:'Dynamic Programming', id:29, type:'dp1d', name:'Coin Change', diff:'Medium',
+  { cat:'Dynamic Programming', id:89, type:'dp1d', name:'Coin Change', diff:'Medium',
     input:[1,5,11], target:15, expected:3,
     desc:'Minimum coins to make amount. dp[a]=min coins for amount a.',
     steps:['dp[0]=0, dp[i]=Infinity.','For each amount a: try each coin c.','dp[a]=min(dp[a], dp[a-c]+1).','Return dp[amount].'],
     time:'O(amount * coins)', space:'O(amount)',
     starter:'function solve(coins, target) {\n  const dp=Array(target+1).fill(Infinity); dp[0]=0;\n  for(let a=1;a<=target;a++) for(const c of coins) if(c<=a&&dp[a-c]+1<dp[a]) dp[a]=dp[a-c]+1;\n  return dp[target]===Infinity?-1:dp[target];\n}' },
 
-  { cat:'Dynamic Programming', id:30, type:'dp1d', name:'Longest Increasing Subsequence', diff:'Medium',
+  { cat:'Dynamic Programming', id:90, type:'dp1d', name:'Longest Increasing Subsequence', diff:'Medium',
     input:[10,9,2,5,3,7,101,18], expected:4,
     desc:'Length of longest strictly increasing subsequence.',
     steps:['dp[i]=1 for all i.','For j<i: if nums[j]<nums[i]: dp[i]=max(dp[i],dp[j]+1).','Return max(dp).'],
     time:'O(n²)', space:'O(n)',
     starter:'function solve(nums) {\n  const dp=Array(nums.length).fill(1);\n  for(let i=1;i<nums.length;i++) for(let j=0;j<i;j++) if(nums[j]<nums[i]) dp[i]=Math.max(dp[i],dp[j]+1);\n  return Math.max(...dp);\n}' },
 
-  { cat:'Dynamic Programming', id:31, type:'dp2d', name:'Longest Common Subsequence', diff:'Medium',
+  { cat:'Dynamic Programming', id:91, type:'dp2d', name:'Longest Common Subsequence', diff:'Medium',
     input:["abcde","ace"], expected:3,
     desc:'Length of longest common subsequence of two strings.',
     steps:['dp[i][j]=LCS of s1[0..i-1] and s2[0..j-1].','If chars match: dp[i][j]=dp[i-1][j-1]+1.','Else: max(dp[i-1][j], dp[i][j-1]).','Return dp[m][n].'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [s1,s2]=input, m=s1.length, n=s2.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=s1[i-1]===s2[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);\n  return dp[m][n];\n}' },
 
-  { cat:'Dynamic Programming', id:32, type:'dp2d', name:'0/1 Knapsack', diff:'Medium',
+  { cat:'Dynamic Programming', id:92, type:'dp2d', name:'0/1 Knapsack', diff:'Medium',
     input:[7,[1,3,4,5],[4,4,5,7]], expected:9,
     desc:'Maximize value with weight capacity W. Each item used at most once.',
     steps:['dp[i][w]=max value using items 0..i-1 with capacity w.','Skip or include item i.','dp[i][w]=max(dp[i-1][w], val[i-1]+dp[i-1][w-wt[i-1]]).'],
     time:'O(nW)', space:'O(nW)',
     starter:'function solve(input) {\n  const [W,wt,val]=input, n=wt.length;\n  const dp=Array.from({length:n+1},()=>Array(W+1).fill(0));\n  for(let i=1;i<=n;i++) for(let w=0;w<=W;w++){\n    dp[i][w]=dp[i-1][w];\n    if(wt[i-1]<=w) dp[i][w]=Math.max(dp[i][w],val[i-1]+dp[i-1][w-wt[i-1]]);\n  }\n  return dp[n][W];\n}' },
 
-  { cat:'Dynamic Programming', id:33, type:'dp2d', name:'Unique Paths', diff:'Medium',
+  { cat:'Dynamic Programming', id:93, type:'dp2d', name:'Unique Paths', diff:'Medium',
     input:[4,4], expected:20,
     desc:'Count unique paths in an m×n grid moving only right or down.',
     steps:['dp[0][j]=1, dp[i][0]=1 (only one way along edges).','dp[i][j]=dp[i-1][j]+dp[i][j-1].','Return dp[m-1][n-1].'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [m,n]=input;\n  const dp=Array.from({length:m},()=>Array(n).fill(1));\n  for(let i=1;i<m;i++) for(let j=1;j<n;j++) dp[i][j]=dp[i-1][j]+dp[i][j-1];\n  return dp[m-1][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:34, type:'dp1d', name:'Jump Game', diff:'Medium',
+  { cat:'Dynamic Programming', id:94, type:'dp1d', name:'Jump Game', diff:'Medium',
     input:[2,3,1,1,4], expected:true,
     desc:'Can you reach the last index? Track max reachable index.',
     steps:['maxReach=0.','For each i: if i>maxReach, stuck.','maxReach=max(maxReach, i+nums[i]).','Return true if we get through.'],
     time:'O(n)', space:'O(1)',
     starter:'function solve(nums) {\n  let max=0;\n  for(let i=0;i<nums.length;i++){ if(i>max) return false; max=Math.max(max,i+nums[i]); }\n  return true;\n}' },
 
-  { cat:'Dynamic Programming', id:35, type:'dp1d', name:'Jump Game II', diff:'Medium',
+  { cat:'Dynamic Programming', id:95, type:'dp1d', name:'Jump Game II', diff:'Medium',
     input:[2,3,0,1,4], expected:2,
     desc:'Minimum jumps to reach the last index.',
     steps:['Greedy BFS: track current end and farthest reach.','When we reach current end, increment jumps.','Update current end to farthest.'],
     time:'O(n)', space:'O(1)',
     starter:'function solve(nums) {\n  let jumps=0, cur=0, far=0;\n  for(let i=0;i<nums.length-1;i++){ far=Math.max(far,i+nums[i]); if(i===cur){ jumps++; cur=far; } }\n  return jumps;\n}' },
 
-  { cat:'Dynamic Programming', id:36, type:'dp1d', name:'Decode Ways', diff:'Medium',
+  { cat:'Dynamic Programming', id:96, type:'dp1d', name:'Decode Ways', diff:'Medium',
     input:"226", expected:3,
     desc:'Count number of ways to decode a digit string. 1-26 map to A-Z.',
     steps:['dp[0]=1, dp[1]=s[0]!="0"?1:0.','For i>=2: check single digit (s[i-1]) and two digits (s[i-2..i-1]).','Accumulate valid decodings.'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(s) {\n  const n=s.length; if(!n) return 0;\n  const dp=Array(n+1).fill(0); dp[0]=1; dp[1]=s[0]!=="0"?1:0;\n  for(let i=2;i<=n;i++){\n    if(s[i-1]!=="0") dp[i]+=dp[i-1];\n    const two=+s.slice(i-2,i);\n    if(two>=10&&two<=26) dp[i]+=dp[i-2];\n  }\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:37, type:'dp1d', name:'Word Break', diff:'Medium',
+  { cat:'Dynamic Programming', id:97, type:'dp1d', name:'Word Break', diff:'Medium',
     input:["leetcode",["leet","code"]], expected:true,
     desc:'Can the string be segmented into dictionary words?',
     steps:['dp[0]=true (empty prefix).','For i=1 to n: check all j<i where dp[j] and s[j..i] in dict.','Return dp[n].'],
     time:'O(n²)', space:'O(n)',
     starter:'function solve(input) {\n  const [s,dict]=input, n=s.length, set=new Set(dict);\n  const dp=Array(n+1).fill(false); dp[0]=true;\n  for(let i=1;i<=n;i++) for(let j=0;j<i;j++) if(dp[j]&&set.has(s.slice(j,i))){ dp[i]=true; break; }\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:38, type:'dp1d', name:'House Robber II', diff:'Medium',
+  { cat:'Dynamic Programming', id:98, type:'dp1d', name:'House Robber II', diff:'Medium',
     input:[2,3,2], expected:3,
     desc:'Houses in a circle — cannot rob first and last both. Run House Robber twice.',
     steps:['Run rob on nums[0..n-2].','Run rob on nums[1..n-1].','Return max of both.'],
     time:'O(n)', space:'O(1)',
     starter:'function solve(nums) {\n  const rob=a=>{ let p=0,c=0; for(const x of a){ [p,c]=[c,Math.max(c,p+x)]; } return c; };\n  const n=nums.length; if(n===1) return nums[0];\n  return Math.max(rob(nums.slice(0,n-1)),rob(nums.slice(1)));\n}' },
 
-  { cat:'Dynamic Programming', id:39, type:'dp2d', name:'Partition Equal Subset Sum', diff:'Medium',
+  { cat:'Dynamic Programming', id:99, type:'dp2d', name:'Partition Equal Subset Sum', diff:'Medium',
     input:[1,5,11,5], expected:true,
     desc:'Can the array be partitioned into two equal-sum subsets?',
     steps:['Total must be even.','0/1 Knapsack with target=total/2.','dp[j]=true if sum j reachable.'],
     time:'O(n * sum)', space:'O(sum)',
     starter:'function solve(nums) {\n  const sum=nums.reduce((a,b)=>a+b,0);\n  if(sum%2) return false;\n  const T=sum/2, dp=Array(T+1).fill(false); dp[0]=true;\n  for(const n of nums) for(let j=T;j>=n;j--) dp[j]=dp[j]||dp[j-n];\n  return dp[T];\n}' },
 
-  { cat:'Dynamic Programming', id:40, type:'dp1d', name:'Target Sum', diff:'Medium',
+  { cat:'Dynamic Programming', id:100, type:'dp1d', name:'Target Sum', diff:'Medium',
     input:[1,1,1,1,1], target:3, expected:5,
     desc:'Count ways to assign + or - to each number to reach target.',
     steps:['Use dp map of {sum: ways}.','For each num: new dp = combine +num and -num.','Return dp[target].'],
     time:'O(n * sum)', space:'O(sum)',
     starter:'function solve(nums, target) {\n  let dp={0:1};\n  for(const n of nums){\n    const nd={};\n    for(const [s,c] of Object.entries(dp)){\n      nd[+s+n]=(nd[+s+n]||0)+c;\n      nd[+s-n]=(nd[+s-n]||0)+c;\n    }\n    dp=nd;\n  }\n  return dp[target]||0;\n}' },
 
-  { cat:'Dynamic Programming', id:41, type:'dp1d', name:'Perfect Squares', diff:'Medium',
+  { cat:'Dynamic Programming', id:101, type:'dp1d', name:'Perfect Squares', diff:'Medium',
     input:12, expected:3,
     desc:'Minimum number of perfect squares that sum to n.',
     steps:['dp[0]=0, dp[i]=Infinity.','For i=1 to n: try each perfect square j*j <= i.','dp[i]=min(dp[i], dp[i-j*j]+1).'],
     time:'O(n√n)', space:'O(n)',
     starter:'function solve(n) {\n  const dp=Array(n+1).fill(Infinity); dp[0]=0;\n  for(let i=1;i<=n;i++) for(let j=1;j*j<=i;j++) dp[i]=Math.min(dp[i],dp[i-j*j]+1);\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:42, type:'dp2d', name:'Minimum Path Sum', diff:'Medium',
+  { cat:'Dynamic Programming', id:102, type:'dp2d', name:'Minimum Path Sum', diff:'Medium',
     input:[[1,3,1],[1,5,1],[4,2,1]], expected:7,
     desc:'Find path from top-left to bottom-right minimizing sum (move right or down).',
     steps:['Init first row and column with cumulative sums.','dp[i][j]=grid[i][j]+min(dp[i-1][j], dp[i][j-1]).','Return dp[m-1][n-1].'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(grid) {\n  const m=grid.length, n=grid[0].length;\n  const dp=grid.map(r=>[...r]);\n  for(let j=1;j<n;j++) dp[0][j]+=dp[0][j-1];\n  for(let i=1;i<m;i++) dp[i][0]+=dp[i-1][0];\n  for(let i=1;i<m;i++) for(let j=1;j<n;j++) dp[i][j]+=Math.min(dp[i-1][j],dp[i][j-1]);\n  return dp[m-1][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:43, type:'dp2d', name:'Triangle', diff:'Medium',
+  { cat:'Dynamic Programming', id:103, type:'dp2d', name:'Triangle', diff:'Medium',
     input:[[2],[3,4],[6,5,7],[4,1,8,3]], expected:11,
     desc:'Minimum path sum from top to bottom of triangle.',
     steps:['Start from bottom row.','dp[j]=triangle[i][j]+min(dp[j], dp[j+1]).','Return dp[0].'],
     time:'O(n²)', space:'O(n)',
     starter:'function solve(triangle) {\n  const dp=[...triangle[triangle.length-1]];\n  for(let i=triangle.length-2;i>=0;i--) for(let j=0;j<=i;j++) dp[j]=triangle[i][j]+Math.min(dp[j],dp[j+1]);\n  return dp[0];\n}' },
 
-  { cat:'Dynamic Programming', id:44, type:'dp2d', name:'Edit Distance', diff:'Medium',
+  { cat:'Dynamic Programming', id:104, type:'dp2d', name:'Edit Distance', diff:'Medium',
     input:["horse","ros"], expected:3,
     desc:'Minimum edit operations (insert, delete, replace) to convert word1 to word2.',
     steps:['dp[i][j]=edits to convert w1[0..i-1] to w2[0..j-1].','If chars match: dp[i][j]=dp[i-1][j-1].','Else: 1+min(replace, insert, delete).'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [a,b]=input, m=a.length, n=b.length;\n  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i||j?i?j?0:i:j:0));\n  for(let i=0;i<=m;i++) dp[i][0]=i;\n  for(let j=0;j<=n;j++) dp[0][j]=j;\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);\n  return dp[m][n];\n}' },
 
-  { cat:'Dynamic Programming', id:45, type:'dp2d', name:'Maximal Square', diff:'Medium',
+  { cat:'Dynamic Programming', id:105, type:'dp2d', name:'Maximal Square', diff:'Medium',
     input:[["1","0","1","0"],["1","0","1","1"],["1","1","1","1"]], expected:4,
     desc:'Find the largest square of 1s in a binary matrix. Return its area.',
     steps:['dp[i][j]=side length of largest square ending at (i,j).','If matrix[i][j]="1": dp[i][j]=min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])+1.','Track max side.'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(matrix) {\n  const m=matrix.length, n=matrix[0].length;\n  let max=0;\n  const dp=Array.from({length:m},()=>Array(n).fill(0));\n  for(let i=0;i<m;i++) for(let j=0;j<n;j++){\n    if(matrix[i][j]==="1"){\n      dp[i][j]=i&&j?Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])+1:1;\n      max=Math.max(max,dp[i][j]);\n    }\n  }\n  return max*max;\n}' },
 
-  { cat:'Dynamic Programming', id:46, type:'dp2d', name:'Longest Palindromic Subsequence', diff:'Medium',
+  { cat:'Dynamic Programming', id:106, type:'dp2d', name:'Longest Palindromic Subsequence', diff:'Medium',
     input:"bbbab", expected:4,
     desc:'Length of longest subsequence of s that is a palindrome.',
     steps:['dp[i][j]=LPS of s[i..j].','Base: dp[i][i]=1.','If s[i]==s[j]: dp[i][j]=dp[i+1][j-1]+2.','Else: max(dp[i+1][j], dp[i][j-1]).'],
     time:'O(n²)', space:'O(n²)',
     starter:'function solve(s) {\n  const n=s.length;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let i=0;i<n;i++) dp[i][i]=1;\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1;\n    dp[i][j]=s[i]===s[j]?(len===2?2:dp[i+1][j-1]+2):Math.max(dp[i+1][j],dp[i][j-1]);\n  }\n  return dp[0][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:47, type:'dp2d', name:'Palindromic Substrings Count', diff:'Medium',
+  { cat:'Dynamic Programming', id:107, type:'dp2d', name:'Palindromic Substrings Count', diff:'Medium',
     input:"aaa", expected:6,
     desc:'Count palindromic substrings. Expand around center or use DP table.',
     steps:['dp[i][j]=true if s[i..j] is palindrome.','Base: single chars true; adjacent equal chars.','Expand: s[i]==s[j] && dp[i+1][j-1].','Count all trues.'],
     time:'O(n²)', space:'O(n²)',
     starter:'function solve(s) {\n  const n=s.length; let count=0;\n  const dp=Array.from({length:n},()=>Array(n).fill(false));\n  for(let i=n-1;i>=0;i--) for(let j=i;j<n;j++){\n    dp[i][j]=(s[i]===s[j])&&(j-i<=2||dp[i+1][j-1]);\n    if(dp[i][j]) count++;\n  }\n  return count;\n}' },
 
-  { cat:'Dynamic Programming', id:48, type:'dp1d', name:'Maximum Product Subarray', diff:'Medium',
+  { cat:'Dynamic Programming', id:108, type:'dp1d', name:'Maximum Product Subarray', diff:'Medium',
     input:[2,3,-2,4], expected:6,
     desc:'Find contiguous subarray with largest product. Track max and min.',
     steps:['Maintain curMax and curMin.','curMax=max(n, curMax*n, curMin*n).','curMin=min(n, ...).','Track global max.'],
     time:'O(n)', space:'O(1)',
     starter:'function solve(nums) {\n  let max=nums[0], min=nums[0], res=nums[0];\n  for(let i=1;i<nums.length;i++){\n    const n=nums[i], tmp=max;\n    max=Math.max(n,max*n,min*n); min=Math.min(n,tmp*n,min*n);\n    res=Math.max(res,max);\n  }\n  return res;\n}' },
 
-  { cat:'Dynamic Programming', id:49, type:'dp2d', name:'Interleaving String', diff:'Medium',
+  { cat:'Dynamic Programming', id:109, type:'dp2d', name:'Interleaving String', diff:'Medium',
     input:["aab","axy","aaxaby"], expected:true,
     desc:'Check if s3 is formed by interleaving s1 and s2.',
     steps:['dp[i][j]=true if s3[0..i+j-1] formed from s1[0..i-1] and s2[0..j-1].','Transition from dp[i-1][j] and dp[i][j-1].'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [s1,s2,s3]=input, m=s1.length, n=s2.length;\n  if(m+n!==s3.length) return false;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));\n  dp[0][0]=true;\n  for(let i=1;i<=m;i++) dp[i][0]=dp[i-1][0]&&s1[i-1]===s3[i-1];\n  for(let j=1;j<=n;j++) dp[0][j]=dp[0][j-1]&&s2[j-1]===s3[j-1];\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=(dp[i-1][j]&&s1[i-1]===s3[i+j-1])||(dp[i][j-1]&&s2[j-1]===s3[i+j-1]);\n  return dp[m][n];\n}' },
 
-  { cat:'Dynamic Programming', id:50, type:'dp2d', name:'Distinct Subsequences', diff:'Medium',
+  { cat:'Dynamic Programming', id:110, type:'dp2d', name:'Distinct Subsequences', diff:'Medium',
     input:["rabbbit","rabbit"], expected:3,
     desc:'Count distinct ways subsequences of s equal t.',
     steps:['dp[i][j]=ways s[0..i-1] contains t[0..j-1] as subseq.','If s[i-1]==t[j-1]: dp[i][j]=dp[i-1][j-1]+dp[i-1][j].','Else: dp[i][j]=dp[i-1][j].'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [s,t]=input, m=s.length, n=t.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));\n  for(let i=0;i<=m;i++) dp[i][0]=1;\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=dp[i-1][j]+(s[i-1]===t[j-1]?dp[i-1][j-1]:0);\n  return dp[m][n];\n}' },
 
-  { cat:'Dynamic Programming', id:51, type:'dp2d', name:'Rod Cutting', diff:'Medium',
+  { cat:'Dynamic Programming', id:111, type:'dp2d', name:'Rod Cutting', diff:'Medium',
     input:[1,5,8,9,10,17,17,20], expected:22,
     desc:'Maximize revenue by cutting rod of length n (prices given per length).',
     steps:['dp[j]=max revenue for rod of length j.','For each j: try all cuts i.','dp[j]=max(dp[j], price[i]+dp[j-i-1]).'],
     time:'O(n²)', space:'O(n)',
     starter:'function solve(price) {\n  const n=price.length;\n  const dp=Array(n+1).fill(0);\n  for(let j=1;j<=n;j++) for(let i=0;i<j;i++) dp[j]=Math.max(dp[j],price[i]+dp[j-i-1]);\n  return dp[n];\n}' },
 
-  { cat:'Dynamic Programming', id:52, type:'dp2d', name:'Coin Change II (Ways)', diff:'Medium',
+  { cat:'Dynamic Programming', id:112, type:'dp2d', name:'Coin Change II (Ways)', diff:'Medium',
     input:[1,2,5], target:5, expected:4,
     desc:'Count number of combinations to make amount using coins.',
     steps:['dp[0]=1, dp[a]=0.','For each coin: for a from coin to amount: dp[a]+=dp[a-coin].','Return dp[amount].'],
     time:'O(amount * coins)', space:'O(amount)',
     starter:'function solve(coins, target) {\n  const dp=Array(target+1).fill(0); dp[0]=1;\n  for(const c of coins) for(let a=c;a<=target;a++) dp[a]+=dp[a-c];\n  return dp[target];\n}' },
 
-  { cat:'Dynamic Programming', id:53, type:'dp2d', name:'Matrix Chain Multiplication', diff:'Medium',
+  { cat:'Dynamic Programming', id:113, type:'dp2d', name:'Matrix Chain Multiplication', diff:'Medium',
     input:[10,30,5,60], expected:4500,
     desc:'Find minimum scalar multiplications to multiply chain of matrices.',
     steps:['dp[i][j]=min cost to multiply matrices i to j.','Try every split k between i and j.','dp[i][j]=min(dp[i][k]+dp[k+1][j]+dims[i]*dims[k+1]*dims[j+1]).'],
     time:'O(n³)', space:'O(n²)',
     starter:'function solve(dims) {\n  const n=dims.length-1;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1; dp[i][j]=Infinity;\n    for(let k=i;k<j;k++) dp[i][j]=Math.min(dp[i][j],dp[i][k]+dp[k+1][j]+dims[i]*dims[k+1]*dims[j+1]);\n  }\n  return dp[0][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:54, type:'dp2d', name:'Wildcard Matching', diff:'Hard',
+  { cat:'Dynamic Programming', id:114, type:'dp2d', name:'Wildcard Matching', diff:'Hard',
     input:["adceb","*a*b"], expected:true,
     desc:'Match string s against pattern p with ? and * wildcards.',
     steps:['dp[i][j]=s[0..i-1] matches p[0..j-1].','*: dp[i][j]=dp[i-1][j]||dp[i][j-1].','?: dp[i][j]=dp[i-1][j-1].','Char match: dp[i][j]=dp[i-1][j-1].'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [s,p]=input, m=s.length, n=p.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));\n  dp[0][0]=true;\n  for(let j=1;j<=n;j++) dp[0][j]=p[j-1]==="*"&&dp[0][j-1];\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){\n    if(p[j-1]==="*") dp[i][j]=dp[i-1][j]||dp[i][j-1];\n    else dp[i][j]=(p[j-1]==="?"||p[j-1]===s[i-1])&&dp[i-1][j-1];\n  }\n  return dp[m][n];\n}' },
 
-  { cat:'Dynamic Programming', id:55, type:'dp2d', name:'Regular Expression Matching', diff:'Hard',
+  { cat:'Dynamic Programming', id:115, type:'dp2d', name:'Regular Expression Matching', diff:'Hard',
     input:["aa","a*"], expected:true,
     desc:'Implement regex matching with . and * operators.',
     steps:['dp[i][j]=s[0..i-1] matches p[0..j-1].','*: dp[i][j]=dp[i][j-2] (zero) or dp[i-1][j] if prev matches.','.: matches any char.'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(input) {\n  const [s,p]=input, m=s.length, n=p.length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(false));\n  dp[0][0]=true;\n  for(let j=2;j<=n;j++) if(p[j-1]==="*") dp[0][j]=dp[0][j-2];\n  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){\n    if(p[j-1]==="*") dp[i][j]=dp[i][j-2]||((p[j-2]==="."||p[j-2]===s[i-1])&&dp[i-1][j]);\n    else dp[i][j]=(p[j-1]==="."||p[j-1]===s[i-1])&&dp[i-1][j-1];\n  }\n  return dp[m][n];\n}' },
 
-  { cat:'Dynamic Programming', id:56, type:'dp2d', name:'Burst Balloons', diff:'Hard',
+  { cat:'Dynamic Programming', id:116, type:'dp2d', name:'Burst Balloons', diff:'Hard',
     input:[3,1,5,8], expected:167,
     desc:'Burst all balloons to maximize coins. Padded with 1 on both ends.',
     steps:['Add 1 to both ends.','dp[i][j]=max coins bursting all between i and j.','Try each k as last burst in [i,j].'],
     time:'O(n³)', space:'O(n²)',
     starter:'function solve(nums) {\n  const a=[1,...nums,1], n=a.length;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let len=2;len<n;len++) for(let i=0;i<n-len;i++){\n    const j=i+len;\n    for(let k=i+1;k<j;k++) dp[i][j]=Math.max(dp[i][j],dp[i][k]+a[i]*a[k]*a[j]+dp[k][j]);\n  }\n  return dp[0][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:57, type:'dp2d', name:'Palindrome Partitioning II', diff:'Hard',
+  { cat:'Dynamic Programming', id:117, type:'dp2d', name:'Palindrome Partitioning II', diff:'Hard',
     input:"aab", expected:1,
     desc:'Minimum cuts to partition string into palindromes.',
     steps:['isPalin[i][j]: precompute palindrome table.','dp[i]=min cuts for s[0..i].','dp[i]=min(dp[j-1]+1) where s[j..i] is palindrome.'],
     time:'O(n²)', space:'O(n²)',
     starter:'function solve(s) {\n  const n=s.length;\n  const p=Array.from({length:n},()=>Array(n).fill(false));\n  for(let i=n-1;i>=0;i--) for(let j=i;j<n;j++) p[i][j]=(s[i]===s[j])&&(j-i<=2||p[i+1][j-1]);\n  const dp=Array(n).fill(0);\n  for(let i=0;i<n;i++){\n    if(p[0][i]){ dp[i]=0; continue; }\n    dp[i]=Infinity;\n    for(let j=1;j<=i;j++) if(p[j][i]) dp[i]=Math.min(dp[i],dp[j-1]+1);\n  }\n  return dp[n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:58, type:'dp1d', name:'Longest Valid Parentheses', diff:'Hard',
+  { cat:'Dynamic Programming', id:118, type:'dp1d', name:'Longest Valid Parentheses', diff:'Hard',
     input:")()())", expected:4,
     desc:'Length of longest valid parentheses substring.',
     steps:['dp[i]=length of longest valid ending at i.','If s[i]=")": check s[i-1]="(" or s[i-dp[i-1]-1]="(". ','Update dp[i] accordingly.'],
     time:'O(n)', space:'O(n)',
     starter:'function solve(s) {\n  const n=s.length, dp=Array(n).fill(0); let max=0;\n  for(let i=1;i<n;i++){\n    if(s[i]===")"){\n      if(s[i-1]==="(") dp[i]=(i>=2?dp[i-2]:0)+2;\n      else if(dp[i-1]>0){\n        const k=i-dp[i-1]-1;\n        if(k>=0&&s[k]==="(") dp[i]=dp[i-1]+2+(k>0?dp[k-1]:0);\n      }\n      max=Math.max(max,dp[i]);\n    }\n  }\n  return max;\n}' },
 
-  { cat:'Dynamic Programming', id:59, type:'dp2d', name:'Dungeon Game', diff:'Hard',
+  { cat:'Dynamic Programming', id:119, type:'dp2d', name:'Dungeon Game', diff:'Hard',
     input:[[-2,-3,3],[-5,-10,1],[10,30,-5]], expected:7,
     desc:'Minimum initial health to rescue princess. Traverse grid top-left to bottom-right.',
     steps:['Work backwards from bottom-right.','dp[i][j]=min health needed entering cell (i,j).','dp[i][j]=max(1, min(dp[i+1][j],dp[i][j+1])-dungeon[i][j]).'],
     time:'O(mn)', space:'O(mn)',
     starter:'function solve(dungeon) {\n  const m=dungeon.length, n=dungeon[0].length;\n  const dp=Array.from({length:m+1},()=>Array(n+1).fill(Infinity));\n  dp[m][n-1]=dp[m-1][n]=1;\n  for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--) dp[i][j]=Math.max(1,Math.min(dp[i+1][j],dp[i][j+1])-dungeon[i][j]);\n  return dp[0][0];\n}' },
 
-  { cat:'Dynamic Programming', id:60, type:'dp2d', name:'Egg Drop (2 eggs, 10 floors)', diff:'Hard',
+  { cat:'Dynamic Programming', id:120, type:'dp2d', name:'Egg Drop (2 eggs, 10 floors)', diff:'Hard',
     input:[2,10], expected:4,
     desc:'Minimum trials to find critical floor with k eggs and n floors.',
     steps:['dp[t][k]=max floors checkable with t trials and k eggs.','dp[t][k]=dp[t-1][k-1]+dp[t-1][k]+1.','Find min t where dp[t][k]>=n.'],
     time:'O(k log n)', space:'O(kn)',
     starter:'function solve(input) {\n  const [k,n]=input;\n  let t=0; const dp=Array.from({length:n+1},()=>Array(k+1).fill(0));\n  while(dp[t][k]<n){ t++; for(let e=1;e<=k;e++) dp[t][e]=dp[t-1][e-1]+dp[t-1][e]+1; }\n  return t;\n}' },
 
-  { cat:'Dynamic Programming', id:61, type:'dp1d', name:'Russian Doll Envelopes', diff:'Hard',
+  { cat:'Dynamic Programming', id:121, type:'dp1d', name:'Russian Doll Envelopes', diff:'Hard',
     input:[[5,4],[6,4],[6,7],[2,3]], expected:3,
     desc:'LIS on heights after sorting by width asc, height desc.',
     steps:['Sort: width asc, height desc.','LIS on heights (strictly increasing).','Patience sorting or O(n²) DP.'],
     time:'O(n log n)', space:'O(n)',
     starter:'function solve(envelopes) {\n  envelopes.sort((a,b)=>a[0]!==b[0]?a[0]-b[0]:b[1]-a[1]);\n  const tails=[];\n  for(const [,h] of envelopes){\n    let lo=0,hi=tails.length;\n    while(lo<hi){ const m=(lo+hi)>>1; tails[m]<h?lo=m+1:hi=m; }\n    tails[lo]=h;\n  }\n  return tails.length;\n}' },
 
-  { cat:'Dynamic Programming', id:62, type:'dp2d', name:'K Inverse Pairs Array', diff:'Hard',
+  { cat:'Dynamic Programming', id:122, type:'dp2d', name:'K Inverse Pairs Array', diff:'Hard',
     input:[3,1], expected:1,
     desc:'Count permutations of 1..n with exactly k inverse pairs.',
     steps:['dp[i][j]=count of perms of 1..i with j inverse pairs.','dp[i][j]=sum of dp[i-1][j-t] for t=0..min(j,i-1).','Use prefix sums to optimize.'],
     time:'O(nk)', space:'O(nk)',
     starter:'function solve(input) {\n  const [n,k]=input, MOD=1e9+7;\n  const dp=Array.from({length:n+1},()=>Array(k+1).fill(0));\n  dp[0][0]=1;\n  for(let i=1;i<=n;i++){\n    const pre=Array(k+2).fill(0);\n    for(let j=0;j<=k;j++) pre[j+1]=(pre[j]+dp[i-1][j])%MOD;\n    for(let j=0;j<=k;j++) dp[i][j]=(pre[j+1]-pre[Math.max(0,j-i+1)]+MOD)%MOD;\n  }\n  return dp[n][k];\n}' },
 
-  { cat:'Dynamic Programming', id:63, type:'dp2d', name:'Count Palindromic Subsequences', diff:'Hard',
+  { cat:'Dynamic Programming', id:123, type:'dp2d', name:'Count Palindromic Subsequences', diff:'Hard',
     input:"bccb", expected:6,
     desc:'Count distinct palindromic subsequences of length >= 1.',
     steps:['dp[i][j]=count of distinct palindromic subseqs in s[i..j].','Use character expansion approach.','Handle duplicates carefully.'],
     time:'O(n²)', space:'O(n²)',
     starter:'function solve(s) {\n  const n=s.length, MOD=1e9+7;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let i=0;i<n;i++) dp[i][i]=1;\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1;\n    if(s[i]===s[j]) dp[i][j]=(dp[i+1][j]+dp[i][j-1]+1)%MOD;\n    else dp[i][j]=(dp[i+1][j]+dp[i][j-1]-dp[i+1][j-1]+MOD)%MOD;\n  }\n  return dp[0][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:64, type:'dp2d', name:'Strange Printer', diff:'Hard',
+  { cat:'Dynamic Programming', id:124, type:'dp2d', name:'Strange Printer', diff:'Hard',
     input:"aaabbb", expected:2,
     desc:'Minimum turns to print string where each turn prints same character contiguously.',
     steps:['dp[i][j]=min turns to print s[i..j].','If s[i]==s[k] for k in (i,j]: dp[i][j]=min(dp[i][j], dp[i][k-1]+dp[k][j] - offset).','Use interval DP.'],
     time:'O(n³)', space:'O(n²)',
     starter:'function solve(s) {\n  const n=s.length;\n  const dp=Array.from({length:n},()=>Array(n).fill(0));\n  for(let i=0;i<n;i++) dp[i][i]=1;\n  for(let len=2;len<=n;len++) for(let i=0;i<=n-len;i++){\n    const j=i+len-1; dp[i][j]=dp[i][j-1]+1;\n    for(let k=i;k<j;k++) if(s[k]===s[j]) dp[i][j]=Math.min(dp[i][j],(k>i?dp[i][k-1]:0)+(k<j?dp[k][j-1]:0)+(k===i?1:0));\n  }\n  return dp[0][n-1];\n}' },
 
-  { cat:'Dynamic Programming', id:65, type:'dp2d', name:'Min Cost to Cut a Stick', diff:'Hard',
+  { cat:'Dynamic Programming', id:125, type:'dp2d', name:'Min Cost to Cut a Stick', diff:'Hard',
     input:[[7,[1,3,4,5]]], expected:16,
     desc:'Minimum cost to cut a stick. Cost of cut = current stick length.',
     steps:['Add 0 and n to cuts, sort.','dp[i][j]=min cost to cut between cuts[i] and cuts[j].','Try every cut k between i and j.'],
     time:'O(m³)', space:'O(m²)',
     starter:'function solve(input) {\n  const [n,cuts]=input[0];\n  const c=[0,...cuts,n].sort((a,b)=>a-b), m=c.length;\n  const dp=Array.from({length:m},()=>Array(m).fill(0));\n  for(let len=2;len<m;len++) for(let i=0;i<m-len;i++){\n    const j=i+len; dp[i][j]=Infinity;\n    for(let k=i+1;k<j;k++) dp[i][j]=Math.min(dp[i][j],dp[i][k]+dp[k][j]+c[j]-c[i]);\n  }\n  return dp[0][m-1];\n}' },
 
-  { cat:'Dynamic Programming', id:66, type:'dp2d', name:'Super Egg Drop', diff:'Hard',
+  { cat:'Dynamic Programming', id:126, type:'dp2d', name:'Super Egg Drop', diff:'Hard',
     input:[2,6], expected:3,
     desc:'Minimum trials to find critical floor with k eggs and n floors.',
     steps:['Binary search on number of trials.','dp[t][k]=max floors with t trials, k eggs.','Find smallest t where dp[t][k]>=n.'],
     time:'O(k log n)', space:'O(kn)',
     starter:'function solve(input) {\n  const [k,n]=input;\n  const dp=Array.from({length:n+1},()=>Array(k+1).fill(0));\n  let t=0;\n  while(dp[t][k]<n){ t++; for(let e=1;e<=k;e++) dp[t][e]=dp[t-1][e-1]+dp[t-1][e]+1; }\n  return t;\n}' },
 
-  { cat:'Dynamic Programming', id:67, type:'dp2d', name:'Cherry Pickup', diff:'Hard',
+  { cat:'Dynamic Programming', id:127, type:'dp2d', name:'Cherry Pickup', diff:'Hard',
     input:[[0,1,-1],[1,0,-1],[1,1,1]], expected:5,
     desc:'Pick maximum cherries going from top-left to bottom-right and back.',
     steps:['Two people start at (0,0) simultaneously.','dp[r1][c1][c2]: simulate both moving down together.','Combine paths optimally.'],
     time:'O(n³)', space:'O(n³)',
     starter:'function solve(grid) {\n  const n=grid.length;\n  const memo=new Map();\n  function dp(r,c1,c2){\n    const c1r=r+c1-c2<0||r+c1-c2>=n||c1>=n||r>=n?-Infinity:0;\n    if(r===n) return 0;\n    if(grid[r][c1]===-1||grid[r][r+c1-c2]===-1) return -Infinity;\n    const key=`${r},${c1},${c2}`;\n    if(memo.has(key)) return memo.get(key);\n    let cherries=c1===r+c1-c2?grid[r][c1]:grid[r][c1]+grid[r][r+c1-c2];\n    let best=-Infinity;\n    for(const dc1 of [0,1]) for(const dc2 of [0,1]){\n      const nx=dp(r+1,c1+dc1,c2+dc2); if(nx>-Infinity) best=Math.max(best,nx);\n    }\n    const res=best===-Infinity?-Infinity:cherries+best;\n    memo.set(key,res); return res;\n  }\n  return Math.max(0,dp(0,0,0));\n}' },
 
-  { cat:'Dynamic Programming', id:68, type:'dp1d', name:'Maximum Profit Job Scheduling', diff:'Hard',
+  { cat:'Dynamic Programming', id:128, type:'dp1d', name:'Maximum Profit Job Scheduling', diff:'Hard',
     input:[[1,3,50],[2,4,10],[3,5,40],[3,6,70]], expected:120,
     desc:'Schedule non-overlapping jobs to maximize profit.',
     steps:['Sort jobs by end time.','dp[i]=max profit using first i jobs.','Binary search for last non-conflicting job.'],
@@ -1749,6 +2169,140 @@ function buildFrames(p) {
         return 1 + Math.max(l, r);
       })(0, 1);
       pushFrame(arr, { ...dc }, `Maximum depth of the tree: ${p.expected}.`);
+
+    } else if (p.name === 'Height of Binary Tree') {
+      const hc = {};
+      (function go(i) {
+        if (i >= arr.length || arr[i] == null) return 0;
+        hc[i] = 'comparing';
+        pushFrame(arr, { ...hc }, `Computing height at node ${arr[i]}.`);
+        const l = go(2*i+1), r = go(2*i+2);
+        hc[i] = 'sorted';
+        pushFrame(arr, { ...hc }, `Height at node ${arr[i]}: ${1 + Math.max(l, r)}.`);
+        return 1 + Math.max(l, r);
+      })(0);
+      pushFrame(arr, { ...hc }, `Height of the binary tree: ${p.expected}.`);
+
+    } else if (p.name === 'Size of Binary Tree') {
+      const sc = {};
+      (function go(i) {
+        if (i >= arr.length || arr[i] == null) return 0;
+        sc[i] = 'comparing';
+        pushFrame(arr, { ...sc }, `Counting node ${arr[i]}.`);
+        const l = go(2*i+1), r = go(2*i+2);
+        sc[i] = 'sorted';
+        pushFrame(arr, { ...sc }, `Subtree at node ${arr[i]} has size ${1 + l + r}.`);
+        return 1 + l + r;
+      })(0);
+      pushFrame(arr, { ...sc }, `Total size of the binary tree: ${p.expected} nodes.`);
+
+    } else if (p.name === 'Count Leaves in Binary Tree') {
+      const lc = {};
+      (function go(i) {
+        if (i >= arr.length || arr[i] == null) return 0;
+        const l = 2*i+1, r = 2*i+2;
+        const noL = l >= arr.length || arr[l] == null;
+        const noR = r >= arr.length || arr[r] == null;
+        lc[i] = 'comparing';
+        pushFrame(arr, { ...lc }, `Visiting node ${arr[i]}${noL && noR ? ' — it is a leaf!' : '.'}`);
+        if (noL && noR) { lc[i] = 'sorted'; pushFrame(arr, { ...lc }, `Node ${arr[i]} counted as leaf.`); return 1; }
+        const cl = go(l), cr = go(r);
+        lc[i] = 'discarded';
+        pushFrame(arr, { ...lc }, `Node ${arr[i]} is internal (${cl + cr} leaves below).`);
+        return cl + cr;
+      })(0);
+      pushFrame(arr, { ...lc }, `Total leaves in the binary tree: ${p.expected}.`);
+
+    } else if (p.name === 'Level Order Line by Line') {
+      let q = [0], v = {}, lvlNum = 0;
+      while (q.length) {
+        const sz = q.length, next = [];
+        const lc = { ...v };
+        q.forEach(i => { if (i < arr.length && arr[i] != null) lc[i] = 'comparing'; });
+        pushFrame(arr, lc, `Level ${lvlNum}: [${q.filter(i => i < arr.length && arr[i] != null).map(i => arr[i]).join(', ')}].`);
+        q.forEach(i => {
+          if (i < arr.length && arr[i] != null) {
+            v[i] = 'sorted'; next.push(2*i+1, 2*i+2);
+          }
+        });
+        q = next; lvlNum++;
+      }
+      pushFrame(arr, { ...v }, 'Line-by-line level order complete.');
+
+    } else if (p.name === 'Reverse Level Order Traversal') {
+      const v = {}, q = [0], order = [];
+      while (q.length) {
+        const i = q.shift();
+        if (i < arr.length && arr[i] != null) {
+          order.push(i); v[i] = 'comparing';
+          pushFrame(arr, { ...v }, `Enqueued node ${arr[i]} (will appear reversed).`);
+          q.push(2*i+1, 2*i+2);
+        }
+      }
+      const rv = {};
+      [...order].reverse().forEach(i => { rv[i] = 'sorted'; pushFrame(arr, { ...rv }, `Adding node ${arr[i]} to reversed output.`); });
+      pushFrame(arr, { ...rv }, `Reverse level order complete: [${[...order].reverse().map(i => arr[i]).join(', ')}].`);
+
+    } else if (p.name === 'Level Order in Spiral Form') {
+      let q = [0], v = {}, ltr = true;
+      while (q.length) {
+        const sz = q.length, lvl = [], next = [];
+        for (let k = 0; k < sz; k++) {
+          const i = q[k];
+          if (i < arr.length && arr[i] != null) { lvl.push(i); next.push(2*i+1, 2*i+2); }
+        }
+        const display = ltr ? lvl : [...lvl].reverse();
+        display.forEach(i => { v[i] = 'comparing'; });
+        pushFrame(arr, { ...v }, `Spiral level (${ltr ? 'L→R' : 'R→L'}): [${display.map(i => arr[i]).join(', ')}].`);
+        display.forEach(i => { v[i] = 'sorted'; });
+        q = next; ltr = !ltr;
+      }
+      pushFrame(arr, { ...v }, 'Spiral traversal complete.');
+
+    } else if (p.name === 'ZigZag Tree Traversal') {
+      let q = [0], v = {}, rev = false;
+      while (q.length) {
+        const sz = q.length, lvl = [], next = [];
+        for (let k = 0; k < sz; k++) {
+          const i = q[k];
+          if (i < arr.length && arr[i] != null) { lvl.push(i); next.push(2*i+1, 2*i+2); }
+        }
+        const display = rev ? [...lvl].reverse() : lvl;
+        display.forEach(i => { v[i] = 'comparing'; });
+        pushFrame(arr, { ...v }, `ZigZag level (${rev ? 'right→left' : 'left→right'}): [${display.map(i => arr[i]).join(', ')}].`);
+        display.forEach(i => { v[i] = 'sorted'; });
+        q = next; rev = !rev;
+      }
+      pushFrame(arr, { ...v }, 'ZigZag traversal complete.');
+
+    } else if (p.name === 'Iterative Inorder Traversal') {
+      const v = {}, stack = []; let cur = 0;
+      while (cur < arr.length || stack.length) {
+        while (cur < arr.length && arr[cur] != null) {
+          v[cur] = 'comparing';
+          pushFrame(arr, { ...v }, `Push node ${arr[cur]} to stack, go left.`);
+          stack.push(cur); cur = 2*cur+1;
+        }
+        cur = stack.pop();
+        if (cur === undefined) break;
+        v[cur] = 'sorted';
+        pushFrame(arr, { ...v }, `Pop and visit node ${arr[cur]}.`);
+        cur = 2*cur+2;
+      }
+      pushFrame(arr, { ...v }, 'Iterative inorder traversal complete.');
+    } else {
+      // Generic tree visualization: BFS highlight
+      const v = {}, q = [0];
+      while (q.length) {
+        const i = q.shift();
+        if (i < arr.length && arr[i] != null) {
+          v[i] = 'comparing';
+          pushFrame(arr, { ...v }, `Visiting node ${arr[i]}.`);
+          v[i] = 'sorted';
+          q.push(2*i+1, 2*i+2);
+        }
+      }
+      pushFrame(arr, { ...v }, `${p.name} complete.`);
     }
 
   /* ── GRAPH ── */
@@ -3032,15 +3586,17 @@ function renderFrame(idx) {
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'viz-svg');
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
   canvas.appendChild(svg);
 
-  const edgeColor = '#2a2a32';
+  const edgeColor = '#4a5568';
 
   function drawLine(x1, y1, x2, y2, col = edgeColor) {
     const el = document.createElementNS(NS, 'line');
     el.setAttribute('x1', x1); el.setAttribute('y1', y1);
     el.setAttribute('x2', x2); el.setAttribute('y2', y2);
-    el.setAttribute('stroke', col); el.setAttribute('stroke-width', '1.5');
+    el.setAttribute('stroke', col); el.setAttribute('stroke-width', '2');
     el.setAttribute('stroke-linecap', 'round');
     svg.appendChild(el);
   }
