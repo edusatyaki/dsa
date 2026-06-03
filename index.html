@@ -973,6 +973,20 @@ window.onerror = (msg, _u, line) => {
    VOICE
 ══════════════════════════════════════════ */
 let voiceOn = false, teacherPlaying = false, _currentAudio = null;
+let _preloadAudio = null, _preloadIdx = -1;
+
+/* Pre-fetch the audio for a future step so it's buffered before we need it */
+function preloadStep(idx) {
+  if (idx >= frames.length || idx === _preloadIdx) return;
+  _preloadIdx = idx;
+  const text = teacherText(frames[idx].msg, idx, frames.length);
+  const url = 'https://translate.google.com/translate_tts?ie=UTF-8' +
+    '&q=' + encodeURIComponent(chunkText(text)[0]) +
+    '&tl=en-IN&client=tw-ob&ttsspeed=0.87';
+  _preloadAudio = new Audio(url);
+  _preloadAudio.preload = 'auto';
+  _preloadAudio.load();
+}
 
 function toggleVoice() {
   voiceOn = !voiceOn;
@@ -1033,7 +1047,7 @@ function speakFallback(text, onStart, onDone) {
   speechSynthesis.speak(u);
 }
 
-/* ── Google Translate TTS — synced: onStart fires when audio begins playing ── */
+/* ── Google Translate TTS — uses preloaded audio when available ── */
 function speakGoogle(text, onStart, onDone) {
   const vi = document.getElementById('voice-indicator');
   const chunks = chunkText(text);
@@ -1048,27 +1062,29 @@ function speakGoogle(text, onStart, onDone) {
     const url = 'https://translate.google.com/translate_tts?ie=UTF-8' +
       '&q=' + encodeURIComponent(chunks[idx]) +
       '&tl=en-IN&client=tw-ob&ttsspeed=0.87';
-    _currentAudio = new Audio(url);
 
-    /* Fire onStart + show indicator the moment audio begins playing */
-    _currentAudio.addEventListener('playing', () => {
+    /* Reuse preloaded audio for first chunk if it matches */
+    if (idx === 0 && _preloadAudio && _preloadIdx !== -1) {
+      _currentAudio = _preloadAudio;
+      _preloadAudio = null; _preloadIdx = -1;
+    } else {
+      _currentAudio = new Audio(url);
+    }
+
+    const onPlaying = () => {
       vi.style.opacity = '1';
       if (!started) { started = true; if (onStart) onStart(); }
-    }, { once: true });
-
+    };
+    _currentAudio.addEventListener('playing', onPlaying, { once: true });
     _currentAudio.onended = () => { idx++; playNext(); };
     _currentAudio.onerror = () => {
       vi.style.opacity = '0';
       speakFallback(text, started ? null : onStart, onDone);
     };
-    _currentAudio.play().catch(() => {
-      speakFallback(text, started ? null : onStart, onDone);
-    });
+    _currentAudio.play().catch(() => speakFallback(text, started ? null : onStart, onDone));
 
-    /* Safety: if audio hasn't started in 2s, fire onStart and fallback */
-    setTimeout(() => {
-      if (!started) { started = true; if (onStart) onStart(); }
-    }, 2000);
+    /* Safety: 700ms fallback if audio stalls */
+    setTimeout(() => { if (!started) { started = true; if (onStart) onStart(); } }, 700);
   };
   playNext();
 }
@@ -1115,16 +1131,18 @@ function teacherStep() {
   stopSpeak();
   speakGoogle(
     text,
-    /* onStart — fires the moment audio begins: render frame in sync */
+    /* onStart — fires the moment audio begins: render frame in perfect sync */
     () => {
       curFrame = nextIdx;
       renderFrame(curFrame);
       highlightAlgoStep(curFrame, frames.length);
+      /* Preload the step after this one while current is playing */
+      preloadStep(nextIdx + 1);
     },
-    /* onDone — audio finished: short breath then next step */
+    /* onDone — audio finished: minimal pause then next step (already preloaded) */
     () => {
       if (!teacherPlaying) return;
-      setTimeout(teacherStep, 280);
+      setTimeout(teacherStep, 150);
     }
   );
 }
@@ -3799,8 +3817,8 @@ function togglePlay() {
   if (voiceOn) {
     teacherPlaying = true;
     const p = problems.find(x => x.id === curId);
-    // Show frame 0 immediately, speak intro synced with it
     curFrame = 0;
+    preloadStep(1); // preload step 1 while intro plays
     const introText = `Alright! Let's learn ${p ? p.name : 'this algorithm'} together. ${frames[0].msg}`;
     speakGoogle(
       introText,
