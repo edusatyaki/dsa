@@ -269,6 +269,47 @@ body {
   text-transform: uppercase;
   color: var(--t3);
 }
+.panel-header.toggleable { cursor: pointer; }
+.panel-header.toggleable:hover .panel-header-title { color: var(--t2); }
+.panel-collapse-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 3px;
+  transition: color .12s, background .12s;
+}
+.panel-header.toggleable:hover .panel-collapse-btn { color: var(--t1); }
+
+/* collapsed panel → thin vertical strip showing only the rotated title */
+.panel { transition: width .18s ease, flex-basis .18s ease; }
+.panel.collapsed {
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  flex: 0 0 34px !important;
+}
+.panel.collapsed > *:not(.panel-header) { display: none !important; }
+.panel.collapsed .panel-header {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding: 10px 0;
+  border-bottom: none;
+  gap: 10px;
+}
+.panel.collapsed .panel-collapse-btn { margin-left: 0; }
+.panel.collapsed .panel-header-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
 
 .problem-list { overflow-y: auto; flex: 1; }
 
@@ -903,9 +944,10 @@ input[type=range] {
 <div class="workspace">
 
   <!-- Problems -->
-  <div class="panel-problems">
-    <div class="panel-header">
+  <div class="panel panel-problems">
+    <div class="panel-header toggleable" onclick="toggleCollapse(this)">
       <span class="panel-header-title">Problems</span>
+      <button class="panel-collapse-btn" title="Minimize / expand">⟨⟩</button>
     </div>
     <div class="problem-list" id="sidebar"></div>
   </div>
@@ -913,9 +955,10 @@ input[type=range] {
   <div class="divider"></div>
 
   <!-- Description -->
-  <div class="panel-desc">
-    <div class="panel-header">
+  <div class="panel panel-desc">
+    <div class="panel-header toggleable" onclick="toggleCollapse(this)">
       <span class="panel-header-title">Description</span>
+      <button class="panel-collapse-btn" title="Minimize / expand">⟨⟩</button>
     </div>
     <div class="desc-body">
       <div>
@@ -943,9 +986,10 @@ input[type=range] {
   <div class="divider"></div>
 
   <!-- Visualizer -->
-  <div class="panel-viz">
-    <div class="panel-header">
+  <div class="panel panel-viz">
+    <div class="panel-header toggleable" onclick="toggleCollapse(this)">
       <span class="panel-header-title">Visualizer</span>
+      <button class="panel-collapse-btn" title="Minimize / expand">⟨⟩</button>
     </div>
     <div class="viz-stage">
       <div id="viz-canvas"></div>
@@ -978,9 +1022,10 @@ input[type=range] {
   <div class="divider"></div>
 
   <!-- Algorithm -->
-  <div class="panel-algo">
-    <div class="panel-header">
+  <div class="panel panel-algo">
+    <div class="panel-header toggleable" onclick="toggleCollapse(this)">
       <span class="panel-header-title">Algorithm</span>
+      <button class="panel-collapse-btn" title="Minimize / expand">⟨⟩</button>
     </div>
     <div class="algo-body" id="algo-body">
       <p style="color:var(--t3);font-size:12px">Select a problem to view the algorithm.</p>
@@ -990,9 +1035,10 @@ input[type=range] {
   <div class="divider"></div>
 
   <!-- Code -->
-  <div class="panel-code">
-    <div class="panel-header">
+  <div class="panel panel-code">
+    <div class="panel-header toggleable" onclick="toggleCollapse(this)">
       <span class="panel-header-title">Solution</span>
+      <button class="panel-collapse-btn" title="Minimize / expand">⟨⟩</button>
     </div>
     <div class="code-editor-wrap">
       <div id="editor-mount"></div>
@@ -2975,6 +3021,18 @@ function renderDp2d(frame, canvas) {
 ══════════════════════════════════════════ */
 function pushFrame(arr, colors, msg, extra) {
   frames.push({ arr: JSON.parse(JSON.stringify(arr)), colors: { ...colors }, msg, ...(extra || {}) });
+}
+
+/* Minimize / expand a workspace panel to a thin vertical strip */
+function toggleCollapse(headerEl) {
+  const panel = headerEl.closest('.panel');
+  if (!panel) return;
+  panel.classList.toggle('collapsed');
+  // re-layout the editor and visualizer once the width transition settles
+  setTimeout(() => {
+    if (editor) editor.layout();
+    if (frames.length) renderFrame(curFrame);
+  }, 220);
 }
 
 /* Matrix visualizer — reuses the dp2d grid renderer. Every loop iteration
