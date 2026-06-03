@@ -2921,6 +2921,81 @@ function pushFrame(arr, colors, msg) {
   frames.push({ arr: JSON.parse(JSON.stringify(arr)), colors: { ...colors }, msg });
 }
 
+/* Matrix visualizer — reuses the dp2d grid renderer. Every loop iteration
+   highlights the current cell ('cur'), visited cells go 'done', answers 'res'. */
+function buildMatrixFrames(p, m) {
+  const R = m.length, C = m[0].length;
+  const rowL = Array.from({ length: R }, (_, i) => 'r' + i);
+  const colL = Array.from({ length: C }, (_, j) => 'c' + j);
+  const K = (r, c) => r + '_' + c;
+  const allDone = () => { const o = {}; for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) o[K(r,c)] = 'done'; return o; };
+
+  pushDp2d(m, {}, rowL, colL, 'Initial matrix.');
+
+  if (p.name === 'Spiral Order Traversal') {
+    let t = 0, b = R - 1, l = 0, rr = C - 1; const done = {}; const out = [];
+    const visit = (r, c) => { done[K(r,c)] = 'cur'; out.push(m[r][c]); pushDp2d(m, { ...done }, rowL, colL, `Visit (${r},${c})=${m[r][c]}. Order: [${out.join(', ')}].`); done[K(r,c)] = 'done'; };
+    while (t <= b && l <= rr) {
+      for (let c = l; c <= rr; c++) visit(t, c); t++;
+      for (let r = t; r <= b; r++) visit(r, rr); rr--;
+      if (t <= b) { for (let c = rr; c >= l; c--) visit(b, c); b--; }
+      if (l <= rr) { for (let r = b; r >= t; r--) visit(r, l); l++; }
+    }
+    pushDp2d(m, allDone(), rowL, colL, `Spiral order: [${out.join(', ')}].`);
+
+  } else if (p.name === 'Search in Sorted Matrix') {
+    let r = 0, c = C - 1; const done = {};
+    while (r < R && c >= 0) {
+      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Check (${r},${c})=${m[r][c]} vs target ${p.target}.`);
+      if (m[r][c] === p.target) { pushDp2d(m, { ...done, [K(r,c)]: 'res' }, rowL, colL, `Found ${p.target} at (${r},${c}).`); return; }
+      done[K(r,c)] = 'done';
+      if (m[r][c] > p.target) { pushDp2d(m, { ...done }, rowL, colL, `${m[r][c]} > ${p.target} → move left.`); c--; }
+      else { pushDp2d(m, { ...done }, rowL, colL, `${m[r][c]} < ${p.target} → move down.`); r++; }
+    }
+    pushDp2d(m, { ...done }, rowL, colL, `Target ${p.target} not found.`);
+
+  } else if (p.name === 'Transpose of Matrix' || p.name === 'Rotate Matrix 90 Degrees') {
+    const done = {};
+    for (let i = 0; i < R; i++) for (let j = i + 1; j < C; j++) {
+      pushDp2d(m, { ...done, [K(i,j)]: 'cur', [K(j,i)]: 'cur' }, rowL, colL, `Swap (${i},${j})=${m[i][j]} with (${j},${i})=${m[j][i]}.`);
+      [m[i][j], m[j][i]] = [m[j][i], m[i][j]];
+      done[K(i,j)] = 'done'; done[K(j,i)] = 'done';
+      pushDp2d(m, { ...done }, rowL, colL, 'Swapped across the diagonal.');
+    }
+    if (p.name === 'Rotate Matrix 90 Degrees') {
+      for (let i = 0; i < R; i++) {
+        const rc = {}; for (let j = 0; j < C; j++) rc[K(i,j)] = 'cur';
+        pushDp2d(m, rc, rowL, colL, `Reverse row ${i}.`);
+        m[i].reverse();
+      }
+      pushDp2d(m, allDone(), rowL, colL, 'Rotated 90° clockwise.');
+    } else {
+      pushDp2d(m, allDone(), rowL, colL, 'Transpose complete.');
+    }
+
+  } else if (p.name === 'Set Matrix Zeros') {
+    const rows = new Set(), cols = new Set(), done = {};
+    for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
+      pushDp2d(m, { ...done, [K(i,j)]: 'cur' }, rowL, colL, `Scan (${i},${j})=${m[i][j]}.`);
+      if (m[i][j] === 0) { rows.add(i); cols.add(j); done[K(i,j)] = 'res'; pushDp2d(m, { ...done }, rowL, colL, `Zero found — mark row ${i} and col ${j}.`); }
+      else done[K(i,j)] = 'done';
+    }
+    for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) if (rows.has(i) || cols.has(j)) m[i][j] = 0;
+    const fc = {}; for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) fc[K(i,j)] = m[i][j] === 0 ? 'res' : 'done';
+    pushDp2d(m, fc, rowL, colL, 'Rows and columns zeroed.');
+
+  } else {
+    /* Generic row-major scan — visualizes the loop iteration for every other matrix problem */
+    const done = {};
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Visiting cell (${r},${c}) = ${m[r][c]}.`);
+      done[K(r,c)] = 'done';
+    }
+    const fc = allDone();
+    pushDp2d(m, fc, rowL, colL, `Scan complete. Result: ${JSON.stringify(p.expected)}.`);
+  }
+}
+
 function buildFrames(p) {
   frames = [];
   const arr = JSON.parse(JSON.stringify(p.input));
@@ -3221,9 +3296,31 @@ function buildFrames(p) {
       }
 
     } else {
+      /* Generic graph traversal — visit every node and edge so the loop iteration is animated */
+      const vis = new Set(), c = {};
+      for (let s = 0; s < nodes.length; s++) {
+        if (vis.has(s)) continue;
+        const q = [s]; vis.add(s);
+        while (q.length) {
+          const u = q.shift();
+          c[u] = 'comparing';
+          pushFrame(nodes, { ...c }, `Visiting node ${u}.`);
+          c[u] = 'sorted';
+          for (const v of (arr[u] || [])) {
+            if (!vis.has(v)) {
+              vis.add(v); q.push(v);
+              pushFrame(nodes, { ...c, [v]: 'comparing' }, `Exploring edge ${u} → ${v}.`);
+            }
+          }
+        }
+      }
       const fc = {}; nodes.forEach((_, i) => { fc[i] = 'sorted'; });
-      pushFrame(nodes, fc, 'Algorithm complete.');
+      pushFrame(nodes, fc, `${p.name} complete.`);
     }
+
+  /* ── 2D ARRAY / MATRIX ── */
+  } else if (p.type === 'array' && Array.isArray(arr[0])) {
+    buildMatrixFrames(p, arr);
 
   /* ── ARRAY ── */
   } else if (p.type === 'array') {
