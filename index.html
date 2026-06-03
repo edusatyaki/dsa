@@ -652,6 +652,15 @@ input[type=range] {
   line-height: 1.5;
 }
 .step-list li:last-child { border-bottom: none; }
+.step-list li.active-step {
+  color: var(--t1);
+  background: var(--ac-dim);
+  border-radius: 6px;
+  padding-left: 8px;
+  margin: 0 -8px;
+  border-bottom-color: transparent;
+}
+.step-list li.active-step .step-n { color: var(--ac); }
 .step-n {
   font-family: var(--mono);
   font-size: 11px;
@@ -963,7 +972,7 @@ window.onerror = (msg, _u, line) => {
 /* ══════════════════════════════════════════
    VOICE
 ══════════════════════════════════════════ */
-let voiceOn = false;
+let voiceOn = false, teacherPlaying = false;
 
 function toggleVoice() {
   voiceOn = !voiceOn;
@@ -972,24 +981,86 @@ function toggleVoice() {
   btn.classList.toggle('on', voiceOn);
   btn.childNodes[1].nodeValue = ` Voice: ${voiceOn ? 'On' : 'Off'}`;
   vaIdle.classList.toggle('idle', !voiceOn);
-  if (!voiceOn) stopSpeak();
+  if (!voiceOn) { stopSpeak(); }
 }
 
-function speak(text) {
-  if (!voiceOn || !window.speechSynthesis) return;
-  stopSpeak();
+/* Build a friendly teacher narration from a raw frame message */
+function teacherText(msg, frameIdx, totalFrames) {
+  const p = problems.find(x => x.id === curId);
+  const name = p ? p.name : 'this algorithm';
+  if (frameIdx === 0)
+    return `Alright! Let's learn ${name} together. ${msg}`;
+  if (frameIdx === totalFrames - 1)
+    return `And there we go! ${msg} That's how ${name} works. Great job following along!`;
+  const transitions = [
+    'Now,', 'Next,', 'So,', 'Notice that', 'Here,', 'Moving on —',
+    'Great! Now', 'Let\'s see —', 'Observe that', 'Watch closely —'
+  ];
+  const t = transitions[frameIdx % transitions.length];
+  return `${t} ${msg}`;
+}
+
+/* Preferred voices cache */
+let _cachedVoice = null;
+function getVoice() {
+  if (_cachedVoice) return _cachedVoice;
+  const voices = speechSynthesis.getVoices();
+  _cachedVoice = voices.find(v =>
+    /Samantha|Karen|Moira|Victoria|Nicky|Google US English/i.test(v.name)
+  ) || voices.find(v => v.lang === 'en-US') || voices[0] || null;
+  return _cachedVoice;
+}
+
+/* Speak a single utterance, call onDone when finished */
+function speakUtterance(text, onDone) {
+  if (!window.speechSynthesis) { if (onDone) setTimeout(onDone, 600); return; }
+  speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.rate = 0.93; u.pitch = 1; u.volume = 1;
+  u.rate = 0.88; u.pitch = 1.05; u.volume = 1;
+  const v = getVoice(); if (v) u.voice = v;
   const vi = document.getElementById('voice-indicator');
-  u.onstart = () => { vi.style.opacity = '1'; };
-  u.onend   = () => { vi.style.opacity = '0'; };
-  u.onerror = () => { vi.style.opacity = '0'; };
+  u.onstart = () => vi.style.opacity = '1';
+  u.onend   = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
+  u.onerror = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
   speechSynthesis.speak(u);
+}
+
+/* Called by renderFrame for manual scrubbing (non-playing) */
+function speak(msg) {
+  if (!voiceOn || teacherPlaying) return;
+  speakUtterance(teacherText(msg, curFrame, frames.length));
 }
 
 function stopSpeak() {
   if (window.speechSynthesis) speechSynthesis.cancel();
   document.getElementById('voice-indicator').style.opacity = '0';
+}
+
+/* Highlight the step in the Algorithm panel that best matches the current frame index */
+function highlightAlgoStep(frameIdx, totalFrames) {
+  const items = document.querySelectorAll('.step-list li');
+  if (!items.length) return;
+  items.forEach(li => li.classList.remove('active-step'));
+  // Map frame progress to step index
+  const stepIdx = Math.min(
+    Math.floor((frameIdx / Math.max(totalFrames - 1, 1)) * items.length),
+    items.length - 1
+  );
+  items[stepIdx].classList.add('active-step');
+  items[stepIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+/* Teacher-mode: advance frame, speak, wait for speech, then next frame */
+function teacherStep() {
+  if (!teacherPlaying) return;
+  if (curFrame >= frames.length - 1) { pausePlay(); return; }
+  renderFrame(++curFrame);
+  highlightAlgoStep(curFrame, frames.length);
+  const msg = frames[curFrame].msg;
+  speakUtterance(teacherText(msg, curFrame, frames.length), () => {
+    if (!teacherPlaying) return;
+    setTimeout(teacherStep, 320); // natural breath between steps
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -3658,14 +3729,26 @@ function togglePlay() {
   playing = true;
   document.getElementById('btn-play').textContent = '⏸';
   if (curFrame >= frames.length - 1) curFrame = -1;
-  playTimer = setInterval(() => {
-    if (curFrame < frames.length - 1) renderFrame(++curFrame);
-    else pausePlay();
-  }, 440);
+
+  if (voiceOn) {
+    /* Teacher mode — speech drives the pace */
+    teacherPlaying = true;
+    // Speak intro then start stepping
+    const p = problems.find(x => x.id === curId);
+    const intro = `Let's walk through ${p ? p.name : 'this algorithm'} step by step.`;
+    speakUtterance(intro, () => { if (teacherPlaying) teacherStep(); });
+  } else {
+    teacherPlaying = false;
+    playTimer = setInterval(() => {
+      if (curFrame < frames.length - 1) renderFrame(++curFrame);
+      else pausePlay();
+    }, 440);
+  }
 }
 
 function pausePlay() {
-  playing = false; clearInterval(playTimer);
+  playing = false; teacherPlaying = false; clearInterval(playTimer);
+  stopSpeak();
   const b = document.getElementById('btn-play');
   if (b) b.textContent = '▶';
 }
