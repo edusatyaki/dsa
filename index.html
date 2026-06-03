@@ -841,6 +841,7 @@ input[type=range] {
       </div>
       Voice: Off
     </button>
+    <button class="voice-btn" id="api-key-btn" onclick="openApiModal()" title="Set ElevenLabs API key for realistic Indian voice" style="padding:0 10px;font-size:15px;">⚙</button>
     <select class="lang-select" id="lang-sel" onchange="changeLang()">
       <option value="javascript">JavaScript</option>
       <option value="python">Python</option>
@@ -973,6 +974,22 @@ window.onerror = (msg, _u, line) => {
    VOICE
 ══════════════════════════════════════════ */
 let voiceOn = false, teacherPlaying = false;
+let _elKey = localStorage.getItem('el_api_key') || '';
+let _currentAudio = null;
+
+/* ── API Key Modal ── */
+function openApiModal() {
+  const m = document.getElementById('api-modal');
+  document.getElementById('el-key-input').value = _elKey;
+  m.style.display = 'flex';
+}
+function closeApiModal() { document.getElementById('api-modal').style.display = 'none'; }
+function saveApiKey() {
+  _elKey = document.getElementById('el-key-input').value.trim();
+  localStorage.setItem('el_api_key', _elKey);
+  document.getElementById('api-key-btn').style.color = _elKey ? 'var(--ac)' : '';
+  closeApiModal();
+}
 
 function toggleVoice() {
   voiceOn = !voiceOn;
@@ -981,43 +998,72 @@ function toggleVoice() {
   btn.classList.toggle('on', voiceOn);
   btn.childNodes[1].nodeValue = ` Voice: ${voiceOn ? 'On' : 'Off'}`;
   vaIdle.classList.toggle('idle', !voiceOn);
-  if (!voiceOn) { stopSpeak(); }
+  if (!voiceOn) stopSpeak();
 }
 
-/* Build a friendly teacher narration from a raw frame message */
+/* Build teacher-friendly narration */
 function teacherText(msg, frameIdx, totalFrames) {
   const p = problems.find(x => x.id === curId);
   const name = p ? p.name : 'this algorithm';
-  if (frameIdx === 0)
-    return `Alright! Let's learn ${name} together. ${msg}`;
+  if (frameIdx === 0) return `Alright! Let's learn ${name} together. ${msg}`;
   if (frameIdx === totalFrames - 1)
     return `And there we go! ${msg} That's how ${name} works. Great job following along!`;
-  const transitions = [
-    'Now,', 'Next,', 'So,', 'Notice that', 'Here,', 'Moving on —',
-    'Great! Now', 'Let\'s see —', 'Observe that', 'Watch closely —'
-  ];
-  const t = transitions[frameIdx % transitions.length];
-  return `${t} ${msg}`;
+  const tr = ['Now,','Next,','So,','Notice that','Here,','Moving on —','Great! Now','Let\'s see —','Observe that','Watch closely —'];
+  return `${tr[frameIdx % tr.length]} ${msg}`;
 }
 
-/* Preferred voices cache */
+/* ── ElevenLabs TTS ── */
+// ElevenLabs "Rishi" voice ID — Indian English Male, warm & natural
+const EL_VOICE_ID = 'nPczCjzI2devNBz1zQrb'; // Rishi (Indian English Male)
+const EL_MODEL    = 'eleven_turbo_v2_5';
+
+async function speakElevenLabs(text, onDone) {
+  const vi = document.getElementById('voice-indicator');
+  try {
+    vi.style.opacity = '1';
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}/stream`, {
+      method: 'POST',
+      headers: { 'xi-api-key': _elKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        model_id: EL_MODEL,
+        voice_settings: { stability: 0.55, similarity_boost: 0.80, style: 0.25, use_speaker_boost: true }
+      })
+    });
+    if (!res.ok) { vi.style.opacity = '0'; speakFallback(text, onDone); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    _currentAudio = new Audio(url);
+    _currentAudio.onended = () => { vi.style.opacity = '0'; URL.revokeObjectURL(url); if (onDone) onDone(); };
+    _currentAudio.onerror = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
+    _currentAudio.play();
+  } catch {
+    vi.style.opacity = '0';
+    speakFallback(text, onDone);
+  }
+}
+
+/* ── Web Speech API fallback — prefer Rishi (en-IN) ── */
 let _cachedVoice = null;
-function getVoice() {
+function getRishiVoice() {
   if (_cachedVoice) return _cachedVoice;
-  const voices = speechSynthesis.getVoices();
-  _cachedVoice = voices.find(v =>
-    /Samantha|Karen|Moira|Victoria|Nicky|Google US English/i.test(v.name)
-  ) || voices.find(v => v.lang === 'en-US') || voices[0] || null;
+  const vs = speechSynthesis.getVoices();
+  _cachedVoice =
+    vs.find(v => v.name === 'Rishi') ||
+    vs.find(v => v.lang === 'en-IN') ||
+    vs.find(v => /Lekha|Vani/i.test(v.name)) ||
+    vs.find(v => v.lang === 'en-GB') ||
+    vs[0] || null;
   return _cachedVoice;
 }
 
-/* Speak a single utterance, call onDone when finished */
-function speakUtterance(text, onDone) {
+function speakFallback(text, onDone) {
   if (!window.speechSynthesis) { if (onDone) setTimeout(onDone, 600); return; }
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.rate = 0.88; u.pitch = 1.05; u.volume = 1;
-  const v = getVoice(); if (v) u.voice = v;
+  u.lang = 'en-IN';
+  u.rate = 0.82; u.pitch = 1.0; u.volume = 1;
+  const v = getRishiVoice(); if (v) u.voice = v;
   const vi = document.getElementById('voice-indicator');
   u.onstart = () => vi.style.opacity = '1';
   u.onend   = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
@@ -1025,16 +1071,28 @@ function speakUtterance(text, onDone) {
   speechSynthesis.speak(u);
 }
 
-/* Called by renderFrame for manual scrubbing (non-playing) */
+/* Main entry point */
+function speakUtterance(text, onDone) {
+  stopSpeak();
+  if (_elKey) { speakElevenLabs(text, onDone); }
+  else         { speakFallback(text, onDone);   }
+}
+
 function speak(msg) {
   if (!voiceOn || teacherPlaying) return;
   speakUtterance(teacherText(msg, curFrame, frames.length));
 }
 
 function stopSpeak() {
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
   if (window.speechSynthesis) speechSynthesis.cancel();
   document.getElementById('voice-indicator').style.opacity = '0';
 }
+
+/* Restore gear icon color if key already saved */
+window.addEventListener('DOMContentLoaded', () => {
+  if (_elKey) document.getElementById('api-key-btn').style.color = 'var(--ac)';
+});
 
 /* Highlight the step in the Algorithm panel that best matches the current frame index */
 function highlightAlgoStep(frameIdx, totalFrames) {
@@ -3785,5 +3843,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<!-- ElevenLabs API Key Modal -->
+<div id="api-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:var(--s2);border:1px solid var(--b2);border-radius:12px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="font-size:16px;font-weight:600;color:var(--t1);margin-bottom:6px;">🎙️ Realistic Indian Voice</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:18px;line-height:1.6;">
+      Enter a free <strong style="color:var(--ac)">ElevenLabs API key</strong> for a natural Indian English voice.<br>
+      Get yours free at <span style="color:var(--ac)">elevenlabs.io</span> (10,000 chars/month free).<br>
+      Without a key, the system <em>Rishi</em> (en-IN) voice is used.
+    </div>
+    <input id="el-key-input" type="password" placeholder="Paste your ElevenLabs API key…"
+      style="width:100%;box-sizing:border-box;background:var(--s3);border:1px solid var(--b2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--t1);font-family:var(--mono);margin-bottom:14px;outline:none;">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:18px;">
+      Voice: <strong style="color:var(--t2)">Rishi</strong> — Indian English Male (natural &amp; teacher-like)
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeApiModal()" style="background:var(--s3);border:1px solid var(--b2);border-radius:8px;padding:8px 18px;color:var(--t2);font-size:13px;cursor:pointer;">Cancel</button>
+      <button onclick="saveApiKey()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 18px;color:#000;font-size:13px;font-weight:600;cursor:pointer;">Save &amp; Use</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
