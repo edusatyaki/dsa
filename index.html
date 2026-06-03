@@ -2908,8 +2908,8 @@ function pushDp1d(dp, colors, msg, indexLabels) {
   frames.push({ vizType:'dp1d', dp:[...dp], colors:{...colors}, msg, indexLabels });
 }
 
-function pushDp2d(dp, colors, rowLabels, colLabels, msg) {
-  frames.push({ vizType:'dp2d', dp:dp.map(r=>[...r]), colors:{...colors}, rowLabels, colLabels, msg });
+function pushDp2d(dp, colors, rowLabels, colLabels, msg, vars) {
+  frames.push({ vizType:'dp2d', dp:dp.map(r=>[...r]), colors:{...colors}, rowLabels, colLabels, msg, vars });
 }
 
 function renderDp1d(frame, canvas) {
@@ -2960,6 +2960,14 @@ function renderDp2d(frame, canvas) {
     table.appendChild(rowEl);
   });
   canvas.appendChild(table);
+
+  /* live variable readout (r, c, target, count, …) */
+  if (frame.vars && frame.vars.length) {
+    const ro = document.createElement('div');
+    ro.className = 'var-readout';
+    ro.innerHTML = frame.vars.map(v => `<span class="var-chip">${v.k} = <b>${v.v}</b></span>`).join('');
+    canvas.appendChild(ro);
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -2982,38 +2990,45 @@ function buildMatrixFrames(p, m) {
 
   if (p.name === 'Spiral Order Traversal') {
     let t = 0, b = R - 1, l = 0, rr = C - 1; const done = {}; const out = [];
-    const visit = (r, c) => { done[K(r,c)] = 'cur'; out.push(m[r][c]); pushDp2d(m, { ...done }, rowL, colL, `Visit (${r},${c})=${m[r][c]}. Order: [${out.join(', ')}].`); done[K(r,c)] = 'done'; };
+    const visit = (r, c) => {
+      done[K(r,c)] = 'cur'; out.push(m[r][c]);
+      pushDp2d(m, { ...done }, rowL, colL, `Visit (${r},${c}) = ${m[r][c]}.`,
+        [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'out', v: '[' + out.join(',') + ']' }]);
+      done[K(r,c)] = 'done';
+    };
     while (t <= b && l <= rr) {
       for (let c = l; c <= rr; c++) visit(t, c); t++;
       for (let r = t; r <= b; r++) visit(r, rr); rr--;
       if (t <= b) { for (let c = rr; c >= l; c--) visit(b, c); b--; }
       if (l <= rr) { for (let r = b; r >= t; r--) visit(r, l); l++; }
     }
-    pushDp2d(m, allDone(), rowL, colL, `Spiral order: [${out.join(', ')}].`);
+    pushDp2d(m, allDone(), rowL, colL, `Spiral order: [${out.join(', ')}].`, [{ k: 'out', v: '[' + out.join(',') + ']' }]);
 
   } else if (p.name === 'Search in Sorted Matrix') {
     let r = 0, c = C - 1; const done = {};
     while (r < R && c >= 0) {
-      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Check (${r},${c})=${m[r][c]} vs target ${p.target}.`);
-      if (m[r][c] === p.target) { pushDp2d(m, { ...done, [K(r,c)]: 'res' }, rowL, colL, `Found ${p.target} at (${r},${c}).`); return; }
+      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Check (${r},${c}) = ${m[r][c]} vs target ${p.target}.`,
+        [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'target', v: p.target }]);
+      if (m[r][c] === p.target) { pushDp2d(m, { ...done, [K(r,c)]: 'res' }, rowL, colL, `Found ${p.target} at (${r},${c}). return true.`, [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'target', v: p.target }]); return; }
       done[K(r,c)] = 'done';
-      if (m[r][c] > p.target) { pushDp2d(m, { ...done }, rowL, colL, `${m[r][c]} > ${p.target} → move left.`); c--; }
-      else { pushDp2d(m, { ...done }, rowL, colL, `${m[r][c]} < ${p.target} → move down.`); r++; }
+      if (m[r][c] > p.target) { pushDp2d(m, { ...done }, rowL, colL, `${m[r][c]} > ${p.target} → move left (c--).`, [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'target', v: p.target }]); c--; }
+      else { pushDp2d(m, { ...done }, rowL, colL, `${m[r][c]} < ${p.target} → move down (r++).`, [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'target', v: p.target }]); r++; }
     }
-    pushDp2d(m, { ...done }, rowL, colL, `Target ${p.target} not found.`);
+    pushDp2d(m, { ...done }, rowL, colL, `Out of bounds. ${p.target} not found.`, [{ k: 'target', v: p.target }]);
 
   } else if (p.name === 'Transpose of Matrix' || p.name === 'Rotate Matrix 90 Degrees') {
     const done = {};
     for (let i = 0; i < R; i++) for (let j = i + 1; j < C; j++) {
-      pushDp2d(m, { ...done, [K(i,j)]: 'cur', [K(j,i)]: 'cur' }, rowL, colL, `Swap (${i},${j})=${m[i][j]} with (${j},${i})=${m[j][i]}.`);
+      pushDp2d(m, { ...done, [K(i,j)]: 'cur', [K(j,i)]: 'cur' }, rowL, colL, `i=${i}, j=${j}: swap (${i},${j})=${m[i][j]} with (${j},${i})=${m[j][i]}.`,
+        [{ k: 'i', v: i }, { k: 'j', v: j }]);
       [m[i][j], m[j][i]] = [m[j][i], m[i][j]];
       done[K(i,j)] = 'done'; done[K(j,i)] = 'done';
-      pushDp2d(m, { ...done }, rowL, colL, 'Swapped across the diagonal.');
+      pushDp2d(m, { ...done }, rowL, colL, 'Swapped across the diagonal.', [{ k: 'i', v: i }, { k: 'j', v: j }]);
     }
     if (p.name === 'Rotate Matrix 90 Degrees') {
       for (let i = 0; i < R; i++) {
         const rc = {}; for (let j = 0; j < C; j++) rc[K(i,j)] = 'cur';
-        pushDp2d(m, rc, rowL, colL, `Reverse row ${i}.`);
+        pushDp2d(m, rc, rowL, colL, `Reverse row ${i}.`, [{ k: 'row', v: i }]);
         m[i].reverse();
       }
       pushDp2d(m, allDone(), rowL, colL, 'Rotated 90° clockwise.');
@@ -3024,19 +3039,43 @@ function buildMatrixFrames(p, m) {
   } else if (p.name === 'Set Matrix Zeros') {
     const rows = new Set(), cols = new Set(), done = {};
     for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
-      pushDp2d(m, { ...done, [K(i,j)]: 'cur' }, rowL, colL, `Scan (${i},${j})=${m[i][j]}.`);
-      if (m[i][j] === 0) { rows.add(i); cols.add(j); done[K(i,j)] = 'res'; pushDp2d(m, { ...done }, rowL, colL, `Zero found — mark row ${i} and col ${j}.`); }
+      pushDp2d(m, { ...done, [K(i,j)]: 'cur' }, rowL, colL, `Scan (${i},${j}) = ${m[i][j]}.`,
+        [{ k: 'i', v: i }, { k: 'j', v: j }, { k: 'zeroRows', v: '{' + [...rows].join(',') + '}' }, { k: 'zeroCols', v: '{' + [...cols].join(',') + '}' }]);
+      if (m[i][j] === 0) { rows.add(i); cols.add(j); done[K(i,j)] = 'res'; pushDp2d(m, { ...done }, rowL, colL, `Zero found — mark row ${i} and col ${j}.`, [{ k: 'i', v: i }, { k: 'j', v: j }, { k: 'zeroRows', v: '{' + [...rows].join(',') + '}' }, { k: 'zeroCols', v: '{' + [...cols].join(',') + '}' }]); }
       else done[K(i,j)] = 'done';
     }
     for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) if (rows.has(i) || cols.has(j)) m[i][j] = 0;
     const fc = {}; for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) fc[K(i,j)] = m[i][j] === 0 ? 'res' : 'done';
     pushDp2d(m, fc, rowL, colL, 'Rows and columns zeroed.');
 
+  } else if (p.name === 'Count Negatives in Sorted Matrix') {
+    let r = R - 1, c = 0, cnt = 0; const done = {};
+    while (r >= 0 && c < C) {
+      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Check (${r},${c}) = ${m[r][c]}.`,
+        [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'count', v: cnt }]);
+      if (m[r][c] < 0) { cnt += C - c; for (let cc = c; cc < C; cc++) done[K(r,cc)] = 'res'; pushDp2d(m, { ...done }, rowL, colL, `Negative → all ${C - c} cells to the right are negative. count += ${C - c}.`, [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'count', v: cnt }]); r--; }
+      else { done[K(r,c)] = 'done'; c++; }
+    }
+    pushDp2d(m, allDone(), rowL, colL, `Total negatives = ${cnt}.`, [{ k: 'count', v: cnt }]);
+
+  } else if (p.name === 'Row and Column Sums') {
+    const done = {};
+    const rowSums = Array(R).fill(0), colSums = Array(C).fill(0);
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      rowSums[r] += m[r][c]; colSums[c] += m[r][c];
+      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Add (${r},${c}) = ${m[r][c]} to row ${r} and col ${c} sums.`,
+        [{ k: 'r', v: r }, { k: 'c', v: c }, { k: 'rowSum', v: rowSums[r] }, { k: 'colSum', v: colSums[c] }]);
+      done[K(r,c)] = 'done';
+    }
+    pushDp2d(m, allDone(), rowL, colL, `Row sums [${rowSums.join(', ')}], col sums [${colSums.join(', ')}].`,
+      [{ k: 'rowSums', v: '[' + rowSums.join(',') + ']' }, { k: 'colSums', v: '[' + colSums.join(',') + ']' }]);
+
   } else {
     /* Generic row-major scan — visualizes the loop iteration for every other matrix problem */
     const done = {};
     for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
-      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Visiting cell (${r},${c}) = ${m[r][c]}.`);
+      pushDp2d(m, { ...done, [K(r,c)]: 'cur' }, rowL, colL, `Visiting cell (${r},${c}) = ${m[r][c]}.`,
+        [{ k: 'r', v: r }, { k: 'c', v: c }]);
       done[K(r,c)] = 'done';
     }
     const fc = allDone();
