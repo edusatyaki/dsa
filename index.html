@@ -3367,6 +3367,128 @@ function buildFrames(p) {
       })(0, arr.length - 1);
       const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
 
+    } else if (p.name === 'Find Maximum Element') {
+      let mi = 0;
+      pushFrame(arr, { 0: 'sorted' }, `Initialize max = arr[0] = ${arr[0]}.`);
+      for (let i = 1; i < arr.length; i++) {
+        pushFrame(arr, { [mi]: 'sorted', [i]: 'comparing' }, `Compare arr[${i}]=${arr[i]} with current max ${arr[mi]}.`);
+        if (arr[i] > arr[mi]) { mi = i; pushFrame(arr, { [mi]: 'swapping' }, `${arr[i]} is larger. New max = ${arr[i]}.`); }
+      }
+      pushFrame(arr, { [mi]: 'sorted' }, `Maximum element is ${arr[mi]}.`);
+
+    } else if (p.name === 'Find Minimum Element') {
+      let mi = 0;
+      pushFrame(arr, { 0: 'sorted' }, `Initialize min = arr[0] = ${arr[0]}.`);
+      for (let i = 1; i < arr.length; i++) {
+        pushFrame(arr, { [mi]: 'sorted', [i]: 'comparing' }, `Compare arr[${i}]=${arr[i]} with current min ${arr[mi]}.`);
+        if (arr[i] < arr[mi]) { mi = i; pushFrame(arr, { [mi]: 'swapping' }, `${arr[i]} is smaller. New min = ${arr[i]}.`); }
+      }
+      pushFrame(arr, { [mi]: 'sorted' }, `Minimum element is ${arr[mi]}.`);
+
+    } else if (p.name === 'Reverse an Array') {
+      let l = 0, r = arr.length - 1;
+      pushFrame(arr, {}, 'Use two pointers: left at start, right at end.');
+      while (l < r) {
+        pushFrame(arr, { [l]: 'comparing', [r]: 'comparing' }, `Swap arr[${l}]=${arr[l]} with arr[${r}]=${arr[r]}.`);
+        [arr[l], arr[r]] = [arr[r], arr[l]];
+        pushFrame(arr, { [l]: 'swapping', [r]: 'swapping' }, `Swapped. Move pointers inward.`);
+        l++; r--;
+      }
+      const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, `Array reversed: [${arr.join(', ')}].`);
+
+    } else if (p.name === 'Check if Array is Sorted') {
+      let ok = true;
+      pushFrame(arr, { 0: 'sorted' }, 'Start scanning from index 1.');
+      for (let i = 1; i < arr.length; i++) {
+        pushFrame(arr, { [i-1]: 'comparing', [i]: 'comparing' }, `Is arr[${i}]=${arr[i]} >= arr[${i-1}]=${arr[i-1]}?`);
+        if (arr[i] < arr[i-1]) {
+          ok = false;
+          pushFrame(arr, { [i-1]: 'swapping', [i]: 'swapping' }, `${arr[i]} < ${arr[i-1]} — array is NOT sorted.`);
+          break;
+        }
+        pushFrame(arr, { [i-1]: 'sorted', [i]: 'sorted' }, 'In order so far.');
+      }
+      if (ok) { const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, 'Array IS sorted.'); }
+
+    } else if (p.name === 'Second Largest Element') {
+      let first = -Infinity, second = -Infinity, fi = -1, si = -1;
+      for (let i = 0; i < arr.length; i++) {
+        const c = {}; if (fi >= 0) c[fi] = 'sorted'; if (si >= 0) c[si] = 'comparing'; c[i] = 'swapping';
+        pushFrame(arr, c, `Inspect arr[${i}]=${arr[i]}. Largest=${first === -Infinity ? '−∞' : first}, 2nd=${second === -Infinity ? '−∞' : second}.`);
+        if (arr[i] > first) { second = first; si = fi; first = arr[i]; fi = i; }
+        else if (arr[i] > second && arr[i] !== first) { second = arr[i]; si = i; }
+      }
+      pushFrame(arr, { [fi]: 'comparing', [si]: 'sorted' }, `Largest=${first}, second largest=${second}.`);
+
+    } else if (p.name === 'Remove Duplicates from Sorted Array') {
+      let k = 0;
+      pushFrame(arr, { 0: 'sorted' }, 'Slow pointer k=0 marks last unique element.');
+      for (let i = 1; i < arr.length; i++) {
+        const c = {}; for (let j = 0; j <= k; j++) c[j] = 'sorted'; c[i] = 'comparing';
+        pushFrame(arr, c, `Compare arr[${i}]=${arr[i]} with last unique arr[${k}]=${arr[k]}.`);
+        if (arr[i] !== arr[k]) {
+          k++; arr[k] = arr[i];
+          const c2 = {}; for (let j = 0; j <= k; j++) c2[j] = 'sorted'; c2[k] = 'swapping';
+          pushFrame(arr, c2, `New unique value ${arr[k]} placed at index ${k}.`);
+        } else {
+          pushFrame(arr, { ...c, [i]: 'discarded' }, `Duplicate ${arr[i]} skipped.`);
+        }
+      }
+      const out = arr.slice(0, k + 1), fc = {}; out.forEach((_, i) => { fc[i] = 'sorted'; });
+      pushFrame(out, fc, `Unique elements: [${out.join(', ')}].`);
+
+    } else if (p.name === 'Move Zeros to End') {
+      let j = 0;
+      pushFrame(arr, {}, 'Pointer j tracks next non-zero slot.');
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i] !== 0) {
+          pushFrame(arr, { [i]: 'comparing', [j]: 'swapping' }, `arr[${i}]=${arr[i]} is non-zero → place at index ${j}.`);
+          [arr[i], arr[j]] = [arr[j], arr[i]]; j++;
+        } else {
+          pushFrame(arr, { [i]: 'discarded' }, `arr[${i}]=0 → leave for now.`);
+        }
+      }
+      const fc = {}; arr.forEach((v, i) => { fc[i] = v === 0 ? 'discarded' : 'sorted'; });
+      pushFrame(arr, fc, `Zeros moved to end: [${arr.join(', ')}].`);
+
+    } else if (p.name === 'Left Rotate Array by K') {
+      const n = arr.length, k = p.target % n;
+      const rev = (lo, hi, label) => {
+        while (lo < hi) {
+          pushFrame(arr, { [lo]: 'comparing', [hi]: 'comparing' }, `${label}: swap arr[${lo}] and arr[${hi}].`);
+          [arr[lo], arr[hi]] = [arr[hi], arr[lo]]; lo++; hi--;
+        }
+      };
+      pushFrame(arr, {}, `Rotate left by K=${k} using the reversal method.`);
+      rev(0, k - 1, 'Reverse first K');
+      rev(k, n - 1, 'Reverse rest');
+      rev(0, n - 1, 'Reverse whole array');
+      const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, `Rotated: [${arr.join(', ')}].`);
+
+    } else if (p.name === 'Leaders in an Array') {
+      const n = arr.length, leaders = {};
+      let maxR = arr[n - 1]; leaders[n - 1] = 'sorted';
+      pushFrame(arr, { ...leaders }, `Rightmost element ${arr[n-1]} is always a leader.`);
+      for (let i = n - 2; i >= 0; i--) {
+        pushFrame(arr, { ...leaders, [i]: 'comparing' }, `Is arr[${i}]=${arr[i]} > max-to-right (${maxR})?`);
+        if (arr[i] > maxR) { maxR = arr[i]; leaders[i] = 'sorted'; pushFrame(arr, { ...leaders }, `${arr[i]} is a leader.`); }
+        else pushFrame(arr, { ...leaders, [i]: 'discarded' }, `${arr[i]} is not a leader.`);
+      }
+      const res = arr.filter((_, i) => leaders[i] === 'sorted');
+      pushFrame(arr, { ...leaders }, `Leaders: [${res.join(', ')}].`);
+
+    } else if (p.name === 'Equilibrium Index') {
+      const total = arr.reduce((a, b) => a + b, 0);
+      let left = 0, found = -1;
+      for (let i = 0; i < arr.length; i++) {
+        const right = total - left - arr[i];
+        const c = {}; for (let j = 0; j < i; j++) c[j] = 'sorted'; c[i] = 'comparing';
+        pushFrame(arr, c, `Index ${i}: leftSum=${left}, rightSum=${right}.`);
+        if (left === right) { found = i; pushFrame(arr, { ...c, [i]: 'swapping' }, `Equilibrium index found at ${i}.`); break; }
+        left += arr[i];
+      }
+      if (found === -1) pushFrame(arr, {}, 'No equilibrium index exists.');
+
     } else {
       arr.sort((a, b) => a - b);
       const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; });
