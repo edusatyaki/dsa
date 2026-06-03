@@ -1271,7 +1271,7 @@ const problems = [
     starter:'function solve(mat) {\n  const rowSums = mat.map(r => r.reduce((a,b)=>a+b,0));\n  const colSums = mat[0].map((_,j) => mat.reduce((s,r)=>s+r[j],0));\n  return { rowSums, colSums };\n}' },
 
   { cat:'2D Array', id:18, type:'array', name:'Saddle Point in Matrix', diff:'Medium',
-    input:[[1,2,3],[4,5,6],[7,8,9]], expected:9,
+    input:[[1,2,3],[4,5,6],[7,8,9]], expected:7,
     desc:'A saddle point is an element that is the minimum in its row and maximum in its column.',
     steps:['For each row find the minimum element and its column.','Check if that element is also the maximum in its column.','If yes → it is the saddle point.','Return it, or -1 if none exists.'],
     time:'O(N²)', space:'O(1)',
@@ -1384,7 +1384,7 @@ const problems = [
 
   { cat:'Trees', id:34, type:'tree', name:'Height of Binary Tree',   diff:'Easy',
     input:[1,2,3,4,5,6,7], expected:3,
-    desc:'Height is the number of edges on the longest root-to-leaf path (equivalently, number of levels minus one).',
+    desc:'Height is the number of nodes on the longest root-to-leaf path (same as max depth — number of levels in the tree).',
     steps:['Base: null node → return 0.','Recursively get height of left subtree.','Recursively get height of right subtree.','Return 1 + max(leftHeight, rightHeight).'],
     time:'O(n)', space:'O(h)',
     starter:'function solve(tree) {\n  const h = i => {\n    if (i >= tree.length || tree[i] == null) return 0;\n    return 1 + Math.max(h(2*i+1), h(2*i+2));\n  };\n  return h(0);\n}' },
@@ -3374,7 +3374,7 @@ function buildFrames(p) {
     }
   /* ── DYNAMIC PROGRAMMING ── */
   } else if (p.cat === 'Dynamic Programming') {
-    const pid = p.id;
+    const pid = p.id - 155; // DP ids start at 174; internal frames use offset-19 base
 
     if (pid === 19) { // Fibonacci
       const n = p.input;
