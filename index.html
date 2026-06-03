@@ -1010,11 +1010,34 @@ function chunkText(text, max = 190) {
   return chunks;
 }
 
-/* ── Google Translate TTS — free, neural Indian English voice ── */
-function speakGoogle(text, onDone) {
+/* ── Web Speech API fallback — Rishi (en-IN) ── */
+let _cachedVoice = null;
+function getRishiVoice() {
+  if (_cachedVoice) return _cachedVoice;
+  const vs = speechSynthesis.getVoices();
+  _cachedVoice = vs.find(v => v.name === 'Rishi') ||
+    vs.find(v => v.lang === 'en-IN') ||
+    vs.find(v => v.lang.startsWith('en')) || vs[0] || null;
+  return _cachedVoice;
+}
+function speakFallback(text, onStart, onDone) {
+  if (!window.speechSynthesis) { if (onStart) onStart(); if (onDone) setTimeout(onDone, 800); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-IN'; u.rate = 0.82; u.pitch = 1.0; u.volume = 1;
+  const v = getRishiVoice(); if (v) u.voice = v;
+  const vi = document.getElementById('voice-indicator');
+  u.onstart = () => { vi.style.opacity = '1'; if (onStart) onStart(); };
+  u.onend   = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
+  u.onerror = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
+  speechSynthesis.speak(u);
+}
+
+/* ── Google Translate TTS — synced: onStart fires when audio begins playing ── */
+function speakGoogle(text, onStart, onDone) {
   const vi = document.getElementById('voice-indicator');
   const chunks = chunkText(text);
-  let idx = 0;
+  let idx = 0, started = false;
 
   const playNext = () => {
     if (!voiceOn || idx >= chunks.length) {
@@ -1026,41 +1049,34 @@ function speakGoogle(text, onDone) {
       '&q=' + encodeURIComponent(chunks[idx]) +
       '&tl=en-IN&client=tw-ob&ttsspeed=0.87';
     _currentAudio = new Audio(url);
-    _currentAudio.oncanplay = () => vi.style.opacity = '1';
-    _currentAudio.onended  = () => { idx++; playNext(); };
-    _currentAudio.onerror  = () => { vi.style.opacity = '0'; speakFallback(text, onDone); };
-    _currentAudio.play().catch(() => speakFallback(text, onDone));
+
+    /* Fire onStart + show indicator the moment audio begins playing */
+    _currentAudio.addEventListener('playing', () => {
+      vi.style.opacity = '1';
+      if (!started) { started = true; if (onStart) onStart(); }
+    }, { once: true });
+
+    _currentAudio.onended = () => { idx++; playNext(); };
+    _currentAudio.onerror = () => {
+      vi.style.opacity = '0';
+      speakFallback(text, started ? null : onStart, onDone);
+    };
+    _currentAudio.play().catch(() => {
+      speakFallback(text, started ? null : onStart, onDone);
+    });
+
+    /* Safety: if audio hasn't started in 2s, fire onStart and fallback */
+    setTimeout(() => {
+      if (!started) { started = true; if (onStart) onStart(); }
+    }, 2000);
   };
   playNext();
 }
 
-/* ── Web Speech API fallback — Rishi (en-IN) ── */
-let _cachedVoice = null;
-function getRishiVoice() {
-  if (_cachedVoice) return _cachedVoice;
-  const vs = speechSynthesis.getVoices();
-  _cachedVoice = vs.find(v => v.name === 'Rishi') ||
-    vs.find(v => v.lang === 'en-IN') ||
-    vs.find(v => v.lang.startsWith('en')) || vs[0] || null;
-  return _cachedVoice;
-}
-function speakFallback(text, onDone) {
-  if (!window.speechSynthesis) { if (onDone) setTimeout(onDone, 600); return; }
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-IN'; u.rate = 0.82; u.pitch = 1.0; u.volume = 1;
-  const v = getRishiVoice(); if (v) u.voice = v;
-  const vi = document.getElementById('voice-indicator');
-  u.onstart = () => vi.style.opacity = '1';
-  u.onend   = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
-  u.onerror = () => { vi.style.opacity = '0'; if (onDone) onDone(); };
-  speechSynthesis.speak(u);
-}
-
-/* Main entry — Google TTS primary, Web Speech fallback */
+/* speakUtterance: used for manual scrubbing (no sync needed) */
 function speakUtterance(text, onDone) {
   stopSpeak();
-  speakGoogle(text, onDone);
+  speakGoogle(text, null, onDone);
 }
 
 function speak(msg) {
@@ -1088,17 +1104,29 @@ function highlightAlgoStep(frameIdx, totalFrames) {
   items[stepIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-/* Teacher-mode: advance frame, speak, wait for speech, then next frame */
+/* Teacher-mode: pre-load audio, render frame exactly when audio starts playing */
 function teacherStep() {
   if (!teacherPlaying) return;
   if (curFrame >= frames.length - 1) { pausePlay(); return; }
-  renderFrame(++curFrame);
-  highlightAlgoStep(curFrame, frames.length);
-  const msg = frames[curFrame].msg;
-  speakUtterance(teacherText(msg, curFrame, frames.length), () => {
-    if (!teacherPlaying) return;
-    setTimeout(teacherStep, 320); // natural breath between steps
-  });
+
+  const nextIdx = curFrame + 1;
+  const text = teacherText(frames[nextIdx].msg, nextIdx, frames.length);
+
+  stopSpeak();
+  speakGoogle(
+    text,
+    /* onStart — fires the moment audio begins: render frame in sync */
+    () => {
+      curFrame = nextIdx;
+      renderFrame(curFrame);
+      highlightAlgoStep(curFrame, frames.length);
+    },
+    /* onDone — audio finished: short breath then next step */
+    () => {
+      if (!teacherPlaying) return;
+      setTimeout(teacherStep, 280);
+    }
+  );
 }
 
 /* ══════════════════════════════════════════
@@ -3769,12 +3797,16 @@ function togglePlay() {
   if (curFrame >= frames.length - 1) curFrame = -1;
 
   if (voiceOn) {
-    /* Teacher mode — speech drives the pace */
     teacherPlaying = true;
-    // Speak intro then start stepping
     const p = problems.find(x => x.id === curId);
-    const intro = `Let's walk through ${p ? p.name : 'this algorithm'} step by step.`;
-    speakUtterance(intro, () => { if (teacherPlaying) teacherStep(); });
+    // Show frame 0 immediately, speak intro synced with it
+    curFrame = 0;
+    const introText = `Alright! Let's learn ${p ? p.name : 'this algorithm'} together. ${frames[0].msg}`;
+    speakGoogle(
+      introText,
+      () => { renderFrame(0); highlightAlgoStep(0, frames.length); },
+      () => { if (teacherPlaying) teacherStep(); }
+    );
   } else {
     teacherPlaying = false;
     playTimer = setInterval(() => {
