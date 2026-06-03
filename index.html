@@ -501,6 +501,54 @@ body {
 .bar.swapping::before  { background: var(--red); }
 .bar.sorted::before    { background: var(--green); }
 
+/* per-element column wrapper so we can put a pointer badge above each bar */
+.bar-col {
+  flex: 1;
+  min-width: 20px;
+  max-width: 60px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.bar-col .bar { width: 100%; max-width: none; }
+.ptr-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  white-space: pre;
+  color: var(--amber);
+  min-height: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.ptr-badge .ptr-arrow { font-size: 13px; }
+.ptr-badge.ptr-max { color: var(--green); }
+
+/* live variable readout — top-right of the canvas */
+.var-readout {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  background: rgba(20,20,22,.85);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  padding: 7px 10px;
+  backdrop-filter: blur(4px);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.var-chip { color: var(--t2); }
+.var-chip b { color: var(--t1); font-weight: 600; }
+
 /* svg overlay */
 .viz-svg {
   position: absolute;
@@ -2917,8 +2965,8 @@ function renderDp2d(frame, canvas) {
 /* ══════════════════════════════════════════
    FRAME BUILDER
 ══════════════════════════════════════════ */
-function pushFrame(arr, colors, msg) {
-  frames.push({ arr: JSON.parse(JSON.stringify(arr)), colors: { ...colors }, msg });
+function pushFrame(arr, colors, msg, extra) {
+  frames.push({ arr: JSON.parse(JSON.stringify(arr)), colors: { ...colors }, msg, ...(extra || {}) });
 }
 
 /* Matrix visualizer — reuses the dp2d grid renderer. Every loop iteration
@@ -3465,13 +3513,52 @@ function buildFrames(p) {
       const fc = {}; arr.forEach((_, i) => { fc[i] = 'sorted'; }); pushFrame(arr, fc, 'Array sorted.');
 
     } else if (p.name === 'Find Maximum Element') {
+      /* Mirrors the code:
+         let max = arr[0];
+         for (let i = 1; i < arr.length; i++) if (arr[i] > max) max = arr[i];
+         The `i` pointer (amber) scans left→right; the `max` pointer (green)
+         marks the bar currently held in the max variable. */
       let mi = 0;
-      pushFrame(arr, { 0: 'sorted' }, `Initialize max = arr[0] = ${arr[0]}.`);
+      const colors = i => {
+        const c = {};
+        for (let k = 0; k < arr.length; k++) {
+          if (k === mi) c[k] = 'sorted';
+          else if (i != null && k < i) c[k] = 'discarded';
+          else if (k === i) c[k] = 'comparing';
+        }
+        return c;
+      };
+      const ptr = i => {
+        const pm = { [mi]: { label: 'max', cls: 'ptr-max' } };
+        if (i != null && i !== mi) pm[i] = { label: 'i', cls: '' };
+        return pm;
+      };
+      const vars = i => [{ k: 'max', v: arr[mi] }, ...(i != null ? [{ k: 'i', v: i }] : [])];
+
+      // let max = arr[0]
+      pushFrame(arr, colors(null), 'let max = arr[0] = ' + arr[0] + '.',
+        { pointers: ptr(null), vars: vars(null) });
+
       for (let i = 1; i < arr.length; i++) {
-        pushFrame(arr, { [mi]: 'sorted', [i]: 'comparing' }, `Compare arr[${i}]=${arr[i]} with current max ${arr[mi]}.`);
-        if (arr[i] > arr[mi]) { mi = i; pushFrame(arr, { [mi]: 'swapping' }, `${arr[i]} is larger. New max = ${arr[i]}.`); }
+        // for (i = …) — pointer lands on the current element
+        pushFrame(arr, colors(i), 'i = ' + i + ': is arr[' + i + '] = ' + arr[i] + ' > max = ' + arr[mi] + ' ?',
+          { pointers: ptr(i), vars: vars(i) });
+        if (arr[i] > arr[mi]) {
+          // max = arr[i]
+          const flash = { ...colors(i), [i]: 'swapping' };
+          mi = i;
+          pushFrame(arr, flash, 'Yes → max = arr[' + i + '] = ' + arr[i] + '.',
+            { pointers: ptr(i), vars: vars(i) });
+        } else {
+          pushFrame(arr, colors(i), 'No → max stays ' + arr[mi] + '.',
+            { pointers: ptr(i), vars: vars(i) });
+        }
       }
-      pushFrame(arr, { [mi]: 'sorted' }, `Maximum element is ${arr[mi]}.`);
+
+      // return max
+      const fc = {}; for (let k = 0; k < arr.length; k++) fc[k] = k === mi ? 'sorted' : 'discarded';
+      pushFrame(arr, fc, 'Loop ends. return max = ' + arr[mi] + '.',
+        { pointers: { [mi]: { label: 'max', cls: 'ptr-max' } }, vars: [{ k: 'max', v: arr[mi] }] });
 
     } else if (p.name === 'Find Minimum Element') {
       let mi = 0;
@@ -4607,14 +4694,36 @@ function renderFrame(idx) {
   /* Array bars */
   if (p.type === 'array') {
     canvas.style.alignItems = 'flex-end';
-    const max = Math.max(...frame.arr);
+    const max = Math.max(...frame.arr.map(v => Math.abs(v)), 1);
     frame.arr.forEach((val, i) => {
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+
+      /* pointer badge above the bar (e.g. the loop variable i, or max) */
+      const badge = document.createElement('div');
+      badge.className = 'ptr-badge';
+      const ptr = frame.pointers && frame.pointers[i];
+      if (ptr) {
+        if (ptr.cls) badge.classList.add(ptr.cls);
+        badge.innerHTML = `<span class="ptr-label">${ptr.label}</span><span class="ptr-arrow">▼</span>`;
+      }
+      col.appendChild(badge);
+
       const bar = document.createElement('div');
       bar.className = `bar ${frame.colors[i] || 'default'}`;
       bar.style.height = `${Math.max((val / max) * 80, 6)}%`;
       bar.textContent = val;
-      canvas.appendChild(bar);
+      col.appendChild(bar);
+      canvas.appendChild(col);
     });
+
+    /* live variable readout (max=…, i=…) */
+    if (frame.vars && frame.vars.length) {
+      const ro = document.createElement('div');
+      ro.className = 'var-readout';
+      ro.innerHTML = frame.vars.map(v => `<span class="var-chip">${v.k} = <b>${v.v}</b></span>`).join('');
+      canvas.appendChild(ro);
+    }
     return;
   }
 
