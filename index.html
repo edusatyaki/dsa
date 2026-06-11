@@ -5026,12 +5026,21 @@ document.addEventListener('DOMContentLoaded', () => {
   resize: both;
 }
 #wbFloat.wbf-visible  { display: flex; }
-#wbFloat.wbf-fullscreen {
-  top: 0; left: 0; right: 0; bottom: 0;
+#wbFloat:fullscreen,
+#wbFloat:-webkit-full-screen,
+#wbFloat:-moz-full-screen {
   width: 100vw !important;
   height: 100vh !important;
   border-radius: 0;
   resize: none;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  background: #1a1a22;
+}
+#wbFloat.wbf-fallback-fs {
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  border-radius: 0; resize: none;
+  z-index: 99999 !important;
 }
 #wbFloat.wbf-minimized {
   height: 40px !important;
@@ -5297,12 +5306,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!wbMinimized) setTimeout(() => wbResize(), 50);
   });
 
+  function enterFS() {
+    if (panel.requestFullscreen) panel.requestFullscreen();
+    else if (panel.webkitRequestFullscreen) panel.webkitRequestFullscreen();
+    else if (panel.mozRequestFullScreen) panel.mozRequestFullScreen();
+    else { panel.classList.add('wbf-fallback-fs'); wbFullscreen = true; }
+  }
+  function exitFS() {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+    panel.classList.remove('wbf-fallback-fs'); wbFullscreen = false;
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    wbFullscreen = isFS;
+    maxBtn.querySelector('i').className = isFS ? 'ti ti-minimize' : 'ti ti-maximize';
+    maxBtn.title = isFS ? 'Exit Fullscreen' : 'Fullscreen';
+    setTimeout(() => wbResize(), 60);
+  });
+
   maxBtn.addEventListener('click', () => {
-    wbFullscreen = !wbFullscreen;
-    panel.classList.toggle('wbf-fullscreen', wbFullscreen);
-    maxBtn.querySelector('i').className = wbFullscreen ? 'ti ti-minimize' : 'ti ti-maximize';
     if (wbMinimized) { panel.classList.remove('wbf-minimized'); wbMinimized = false; }
-    setTimeout(() => wbResize(), 50);
+    if (!wbFullscreen) enterFS(); else exitFS();
   });
 
   closeBtn.addEventListener('click', () => {
@@ -5312,7 +5339,8 @@ document.addEventListener('DOMContentLoaded', () => {
   /* drag */
   let dragging = false, dragX = 0, dragY = 0, origR, origB;
   header.addEventListener('mousedown', e => {
-    if (wbFullscreen || e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement) || panel.classList.contains('wbf-fallback-fs');
+    if (isFS || e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
     dragging = true;
     dragX = e.clientX; dragY = e.clientY;
     const style = window.getComputedStyle(panel);
