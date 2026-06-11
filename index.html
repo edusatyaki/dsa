@@ -4977,5 +4977,701 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     DIGITAL WHITEBOARD FLOAT PANEL
+═══════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+
+<style>
+/* ── trigger button ── */
+#wbTrigger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #5c6ac4;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 9990;
+  transition: transform .15s, background .15s;
+  color: #fff;
+  font-size: 22px;
+}
+#wbTrigger:hover { background: #7c8de8; transform: scale(1.08); }
+
+/* ── floating panel ── */
+#wbFloat {
+  position: fixed;
+  bottom: 84px;
+  right: 24px;
+  width: 740px;
+  height: 520px;
+  background: #1a1a22;
+  border: 1px solid #35354a;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+  z-index: 9991;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 380px;
+  min-height: 280px;
+  resize: both;
+}
+#wbFloat.wbf-visible  { display: flex; }
+#wbFloat.wbf-fullscreen {
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0;
+  resize: none;
+}
+#wbFloat.wbf-minimized {
+  height: 40px !important;
+  resize: none;
+  overflow: hidden;
+}
+
+/* ── panel header / drag handle ── */
+#wbfHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 40px;
+  min-height: 40px;
+  background: #12121a;
+  border-bottom: 1px solid #2e2e40;
+  cursor: move;
+  user-select: none;
+  flex-shrink: 0;
+}
+#wbfHeader span { font-size: 13px; color: #bbb; font-family: sans-serif; flex: 1; }
+#wbfHeader button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 16px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  display: flex; align-items: center;
+  transition: color .1s, background .1s;
+}
+#wbfHeader button:hover { color: #fff; background: rgba(255,255,255,0.08); }
+#wbfMinBtn i, #wbfMaxBtn i, #wbfCloseBtn i { pointer-events: none; }
+
+/* ── toolbar ── */
+#wbFloat #wbf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: #1e1e28;
+  border-bottom: 1px solid #2e2e40;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#wbFloat .wbf-label {
+  font-size: 10px;
+  color: #777;
+  user-select: none;
+  white-space: nowrap;
+}
+#wbFloat .wbf-sep {
+  width: 1px; height: 20px;
+  background: #2e2e40;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+#wbFloat .wbf-cbtn {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform .1s;
+  outline: none;
+  padding: 0;
+}
+#wbFloat .wbf-cbtn.active,
+#wbFloat .wbf-cbtn:hover { transform: scale(1.3); border-color: #fff; }
+#wbFloat .wbf-tbtn {
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid #3a3a50;
+  color: #ccc;
+  display: flex; align-items: center; gap: 3px;
+  white-space: nowrap;
+  font-family: sans-serif;
+  transition: background .1s;
+}
+#wbFloat .wbf-tbtn.active { background: #2a3a6a; border-color: #5c7fd8; color: #8bb4ff; }
+#wbFloat .wbf-tbtn:hover:not(.active) { background: #2a2a38; }
+#wbFloat .wbf-szbtn {
+  width: 24px; height: 24px;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid #3a3a50;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .1s;
+}
+#wbFloat .wbf-szbtn.active,
+#wbFloat .wbf-szbtn:hover { background: #2a2a38; border-color: #666; }
+#wbFloat select {
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  border: 1px solid #3a3a50;
+  background: #1a1a22;
+  color: #ccc;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+#wbFloat .wbf-bgbtn {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform .1s;
+  outline: none;
+  padding: 0;
+}
+#wbFloat .wbf-bgbtn.active,
+#wbFloat .wbf-bgbtn:hover { transform: scale(1.3); }
+
+/* ── canvas area ── */
+#wbfCanvasWrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+#wbf-bg-canvas, #wbf-grid-canvas, #wbf-shape-canvas {
+  position: absolute; top: 0; left: 0;
+}
+#wbf-text-input-wrap {
+  position: absolute; display: none; z-index: 10;
+}
+#wbf-text-input-wrap textarea {
+  border: 1.5px dashed #5c7fd8;
+  border-radius: 4px;
+  background: rgba(20,20,30,0.92);
+  color: #fff;
+  outline: none;
+  resize: none;
+  padding: 4px 6px;
+  font-family: sans-serif;
+  line-height: 1.4;
+  min-width: 120px; min-height: 36px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+#wbf-hint {
+  position: absolute;
+  bottom: 8px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px; color: #666;
+  pointer-events: none;
+  background: rgba(20,20,30,0.85);
+  padding: 2px 10px;
+  border-radius: 20px;
+  border: 1px solid #2e2e40;
+  white-space: nowrap;
+  user-select: none;
+  font-family: sans-serif;
+}
+</style>
+
+<!-- Trigger Button -->
+<button id="wbTrigger" title="Open Whiteboard" aria-label="Open whiteboard">
+  <i class="ti ti-pencil"></i>
+</button>
+
+<!-- Floating Whiteboard Panel -->
+<div id="wbFloat">
+  <div id="wbfHeader">
+    <i class="ti ti-writing" style="color:#8bb4ff;font-size:15px"></i>
+    <span>Whiteboard</span>
+    <button id="wbfMinBtn" title="Minimize"><i class="ti ti-minus"></i></button>
+    <button id="wbfMaxBtn" title="Fullscreen"><i class="ti ti-maximize"></i></button>
+    <button id="wbfCloseBtn" title="Close"><i class="ti ti-x"></i></button>
+  </div>
+
+  <div id="wbf-toolbar">
+    <span class="wbf-label">Color</span>
+    <button class="wbf-cbtn active" data-wbf-color="#E24B4A" style="background:#E24B4A" aria-label="Red"></button>
+    <button class="wbf-cbtn" data-wbf-color="#378ADD" style="background:#378ADD" aria-label="Blue"></button>
+    <button class="wbf-cbtn" data-wbf-color="#639922" style="background:#639922" aria-label="Green"></button>
+    <button class="wbf-cbtn" data-wbf-color="#EF9F27" style="background:#EF9F27" aria-label="Amber"></button>
+    <button class="wbf-cbtn" data-wbf-color="#D4537E" style="background:#D4537E" aria-label="Pink"></button>
+    <button class="wbf-cbtn" data-wbf-color="#7F77DD" style="background:#7F77DD" aria-label="Purple"></button>
+    <button class="wbf-cbtn" data-wbf-color="#1D9E75" style="background:#1D9E75" aria-label="Teal"></button>
+    <button class="wbf-cbtn" data-wbf-color="#eeeeee" style="background:#eeeeee;border:1px solid #555" aria-label="White"></button>
+    <div class="wbf-sep"></div>
+    <span class="wbf-label">Size</span>
+    <button class="wbf-szbtn active" data-wbf-size="2"><span style="width:3px;height:3px;border-radius:50%;background:#ccc;display:block"></span></button>
+    <button class="wbf-szbtn" data-wbf-size="5"><span style="width:7px;height:7px;border-radius:50%;background:#ccc;display:block"></span></button>
+    <button class="wbf-szbtn" data-wbf-size="12"><span style="width:12px;height:12px;border-radius:50%;background:#ccc;display:block"></span></button>
+    <div class="wbf-sep"></div>
+    <span class="wbf-label">Draw</span>
+    <button class="wbf-tbtn active" data-wbf-tool="pen"><i class="ti ti-pencil"></i> Pen</button>
+    <button class="wbf-tbtn" data-wbf-tool="eraser"><i class="ti ti-eraser"></i> Erase</button>
+    <div class="wbf-sep"></div>
+    <span class="wbf-label">Shapes</span>
+    <button class="wbf-tbtn" data-wbf-tool="rect"><i class="ti ti-rectangle"></i> Rect</button>
+    <button class="wbf-tbtn" data-wbf-tool="circle"><i class="ti ti-circle"></i> Circle</button>
+    <button class="wbf-tbtn" data-wbf-tool="arrow"><i class="ti ti-arrow-up-right"></i> Arrow</button>
+    <button class="wbf-tbtn" data-wbf-tool="ll"><i class="ti ti-git-branch"></i> LL</button>
+    <select id="wbf-ll-type"><option value="single">Single</option><option value="double">Double</option></select>
+    <button class="wbf-tbtn" data-wbf-tool="text"><i class="ti ti-text-size"></i> Text</button>
+    <select id="wbf-font-size">
+      <option value="14">14</option><option value="18">18</option>
+      <option value="24" selected>24</option><option value="32">32</option><option value="48">48</option>
+    </select>
+    <button class="wbf-tbtn" data-wbf-tool="select"><i class="ti ti-pointer"></i> Move</button>
+    <div class="wbf-sep"></div>
+    <button class="wbf-tbtn" id="wbf-undo-btn"><i class="ti ti-arrow-back-up"></i> Undo</button>
+    <button class="wbf-tbtn" id="wbf-clear-btn"><i class="ti ti-trash"></i> Clear</button>
+    <div class="wbf-sep"></div>
+    <button class="wbf-tbtn" id="wbf-grid-toggle"><i class="ti ti-grid-dots"></i> Grid</button>
+    <select id="wbf-grid-size"><option value="20">S</option><option value="40" selected>M</option><option value="80">L</option></select>
+    <select id="wbf-grid-type"><option value="lines">Lines</option><option value="dots">Dots</option></select>
+    <div class="wbf-sep"></div>
+    <span class="wbf-label">BG</span>
+    <button class="wbf-bgbtn active" data-wbf-bg="#1a1a22" style="background:#1a1a22;border:1px solid #555" title="Dark"></button>
+    <button class="wbf-bgbtn" data-wbf-bg="#ffffff" style="background:#ffffff;border:1px solid #aaa" title="White"></button>
+    <button class="wbf-bgbtn" data-wbf-bg="#FFF9E6" style="background:#FFF9E6;border:1px solid #ccc" title="Cream"></button>
+    <button class="wbf-bgbtn" data-wbf-bg="#0d1117" style="background:#0d1117;border:1px solid #444" title="Black"></button>
+    <label title="Custom BG" style="width:18px;height:18px;border-radius:50%;border:1px dashed #555;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+      <i class="ti ti-palette" style="font-size:11px;color:#777;pointer-events:none"></i>
+      <input type="color" id="wbf-bg-picker" value="#1a1a22" style="position:absolute;opacity:0;width:0;height:0"/>
+    </label>
+  </div>
+
+  <div id="wbfCanvasWrap">
+    <canvas id="wbf-bg-canvas"></canvas>
+    <canvas id="wbf-grid-canvas" style="pointer-events:none"></canvas>
+    <canvas id="wbf-shape-canvas"></canvas>
+    <div id="wbf-text-input-wrap"><textarea id="wbf-text-input" rows="1"></textarea></div>
+    <div id="wbf-hint">Click and drag to draw freely</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* ── panel chrome ── */
+  const panel   = document.getElementById('wbFloat');
+  const trigger = document.getElementById('wbTrigger');
+  const header  = document.getElementById('wbfHeader');
+  const minBtn  = document.getElementById('wbfMinBtn');
+  const maxBtn  = document.getElementById('wbfMaxBtn');
+  const closeBtn= document.getElementById('wbfCloseBtn');
+
+  let wbMinimized = false, wbFullscreen = false;
+
+  trigger.addEventListener('click', () => {
+    if (panel.classList.contains('wbf-visible')) {
+      panel.classList.remove('wbf-visible');
+    } else {
+      panel.classList.add('wbf-visible');
+      if (wbMinimized) { panel.classList.remove('wbf-minimized'); wbMinimized = false; }
+      setTimeout(() => wbResize(), 50);
+    }
+  });
+
+  minBtn.addEventListener('click', () => {
+    wbMinimized = !wbMinimized;
+    panel.classList.toggle('wbf-minimized', wbMinimized);
+    minBtn.querySelector('i').className = wbMinimized ? 'ti ti-chevron-up' : 'ti ti-minus';
+    if (!wbMinimized) setTimeout(() => wbResize(), 50);
+  });
+
+  maxBtn.addEventListener('click', () => {
+    wbFullscreen = !wbFullscreen;
+    panel.classList.toggle('wbf-fullscreen', wbFullscreen);
+    maxBtn.querySelector('i').className = wbFullscreen ? 'ti ti-minimize' : 'ti ti-maximize';
+    if (wbMinimized) { panel.classList.remove('wbf-minimized'); wbMinimized = false; }
+    setTimeout(() => wbResize(), 50);
+  });
+
+  closeBtn.addEventListener('click', () => {
+    panel.classList.remove('wbf-visible');
+  });
+
+  /* drag */
+  let dragging = false, dragX = 0, dragY = 0, origR, origB;
+  header.addEventListener('mousedown', e => {
+    if (wbFullscreen || e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
+    dragging = true;
+    dragX = e.clientX; dragY = e.clientY;
+    const style = window.getComputedStyle(panel);
+    origR = parseInt(style.right) || 24;
+    origB = parseInt(style.bottom) || 84;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - dragX, dy = e.clientY - dragY;
+    dragX = e.clientX; dragY = e.clientY;
+    panel.style.right = (origR - dx) + 'px';
+    panel.style.bottom = (origB - dy) + 'px';
+    origR = parseFloat(panel.style.right);
+    origB = parseFloat(panel.style.bottom);
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+
+  /* resize observer */
+  new ResizeObserver(() => wbResize()).observe(panel);
+
+  /* ── whiteboard engine ── */
+  const bgCanvas   = document.getElementById('wbf-bg-canvas');
+  const gridCanvas = document.getElementById('wbf-grid-canvas');
+  const sc         = document.getElementById('wbf-shape-canvas');
+  const bgCtx   = bgCanvas.getContext('2d');
+  const gridCtx = gridCanvas.getContext('2d');
+  const ctx     = sc.getContext('2d');
+  const wrap    = document.getElementById('wbfCanvasWrap');
+  const hint    = document.getElementById('wbf-hint');
+
+  const HINTS = {
+    pen:'Click and drag to draw',eraser:'Drag to erase',
+    rect:'Drag to draw rect',circle:'Drag to draw circle',
+    arrow:'Drag to draw arrow',ll:'Click nodes — right-click to finish',
+    text:'Click to place text — Enter to commit',select:'Drag to move shapes'
+  };
+  const HANDLE_SIZE = 7;
+
+  let wbState = { tool:'pen', color:'#E24B4A', size:2, drawing:false, bgColor:'#1a1a22', grid:false, gridSize:40, gridType:'lines', llType:'single', fontSize:24 };
+  let shapes=[], history=[], selected=null;
+  let dragShape=null, dragOffX=0, dragOffY=0;
+  let dragNode=null, dragArrowEp=null;
+  let resizeShape=null, resizeHandle='', resizeStartX=0, resizeStartY=0, resizeOrig=null;
+  let drawStart=null;
+
+  function wbResize() {
+    const r = wrap.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) return;
+    const dpr = window.devicePixelRatio || 1;
+    [bgCanvas, gridCanvas, sc].forEach(c => {
+      c.width = r.width * dpr; c.height = r.height * dpr;
+      c.style.width = r.width + 'px'; c.style.height = r.height + 'px';
+      c.getContext('2d').scale(dpr, dpr);
+    });
+    bgCtx.fillStyle = wbState.bgColor;
+    bgCtx.fillRect(0, 0, r.width, r.height);
+    drawGrid(); redrawShapes();
+  }
+
+  function drawGrid() {
+    const r = gridCanvas.getBoundingClientRect();
+    gridCtx.clearRect(0, 0, r.width, r.height);
+    if (!wbState.grid) return;
+    const step = wbState.gridSize;
+    const isDark = ['#1a1a22','#0d1117'].includes(wbState.bgColor);
+    const lc = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+    const dc = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.30)';
+    gridCtx.save();
+    if (wbState.gridType === 'lines') {
+      gridCtx.strokeStyle = lc; gridCtx.lineWidth = 0.5;
+      for (let x = step; x < r.width; x += step) { gridCtx.beginPath(); gridCtx.moveTo(x,0); gridCtx.lineTo(x,r.height); gridCtx.stroke(); }
+      for (let y = step; y < r.height; y += step) { gridCtx.beginPath(); gridCtx.moveTo(0,y); gridCtx.lineTo(r.width,y); gridCtx.stroke(); }
+    } else {
+      gridCtx.fillStyle = dc;
+      for (let x = step; x < r.width; x += step)
+        for (let y = step; y < r.height; y += step) { gridCtx.beginPath(); gridCtx.arc(x,y,1.5,0,Math.PI*2); gridCtx.fill(); }
+    }
+    gridCtx.restore();
+  }
+
+  function applyBgColor(color) {
+    saveHist(); wbState.bgColor = color;
+    const r = bgCanvas.getBoundingClientRect();
+    bgCtx.fillStyle = color; bgCtx.fillRect(0,0,r.width,r.height);
+    drawGrid();
+  }
+
+  function getPos(e) {
+    const r = sc.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  }
+
+  function saveHist() {
+    history.push({ bg: bgCanvas.toDataURL(), shapes: JSON.stringify(shapes) });
+    if (history.length > 60) history.shift();
+  }
+
+  /* ── rendering ── */
+  function redrawShapes() {
+    const r = sc.getBoundingClientRect();
+    ctx.clearRect(0, 0, r.width, r.height);
+    shapes.forEach(s => drawShape(s, s === selected));
+  }
+
+  function drawShape(s, sel) {
+    ctx.save();
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.lw; ctx.lineCap='round'; ctx.lineJoin='round';
+    if (s.type === 'rect') {
+      ctx.strokeRect(s.x, s.y, s.w, s.h);
+      if (sel) drawHandles(s);
+    } else if (s.type === 'circle') {
+      ctx.beginPath(); ctx.ellipse(s.cx, s.cy, Math.max(1,Math.abs(s.rx)), Math.max(1,Math.abs(s.ry)), 0, 0, Math.PI*2); ctx.stroke();
+      if (sel) drawHandles(s);
+    } else if (s.type === 'll') {
+      s.nodes.forEach((n,i) => { drawLLNode(n.x,n.y,s.color,s.lw,s.llType); if(i>0) drawLLArrow(s.nodes[i-1],n,s.color,s.llType); });
+    } else if (s.type === 'text') {
+      ctx.font = `${s.fontSize}px sans-serif`; ctx.fillStyle = s.color; ctx.textBaseline = 'top';
+      const lines = s.text.split('\n');
+      lines.forEach((l,i) => ctx.fillText(l, s.x, s.y + i * s.fontSize * 1.4));
+      if (sel) {
+        const w = Math.max(...lines.map(l => ctx.measureText(l).width));
+        const h = lines.length * s.fontSize * 1.4;
+        ctx.save(); ctx.strokeStyle='#5c7fd8'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+        ctx.strokeRect(s.x-3, s.y-3, w+6, h+6); ctx.setLineDash([]); ctx.restore();
+      }
+    } else if (s.type === 'arrow') {
+      ctx.beginPath(); ctx.moveTo(s.x1,s.y1); ctx.lineTo(s.x2,s.y2); ctx.stroke();
+      const ang = Math.atan2(s.y2-s.y1, s.x2-s.x1), hl = Math.max(10, s.lw*3.5);
+      ctx.save(); ctx.fillStyle=s.color; ctx.beginPath();
+      ctx.moveTo(s.x2,s.y2);
+      ctx.lineTo(s.x2-hl*Math.cos(ang-0.42), s.y2-hl*Math.sin(ang-0.42));
+      ctx.lineTo(s.x2-hl*Math.cos(ang+0.42), s.y2-hl*Math.sin(ang+0.42));
+      ctx.closePath(); ctx.fill(); ctx.restore();
+      if (sel) {
+        [{x:s.x1,y:s.y1},{x:s.x2,y:s.y2}].forEach(p => {
+          ctx.save(); ctx.fillStyle='#1a1a22'; ctx.strokeStyle=s.color; ctx.lineWidth=1.5;
+          ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+        });
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawHandles(s) {
+    getHandlePoints(s).forEach(p => {
+      ctx.save(); ctx.fillStyle='#1a1a22'; ctx.strokeStyle=s.color; ctx.lineWidth=1.5;
+      ctx.fillRect(p.x-HANDLE_SIZE/2, p.y-HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
+      ctx.strokeRect(p.x-HANDLE_SIZE/2, p.y-HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
+      ctx.restore();
+    });
+  }
+
+  function getHandlePoints(s) {
+    if (s.type==='rect') { const {x,y,w,h}=s; return [{id:'tl',x,y},{id:'tr',x:x+w,y},{id:'bl',x,y:y+h},{id:'br',x:x+w,y:y+h},{id:'tm',x:x+w/2,y},{id:'bm',x:x+w/2,y:y+h},{id:'ml',x,y:y+h/2},{id:'mr',x:x+w,y:y+h/2}]; }
+    if (s.type==='circle') { const {cx,cy,rx,ry}=s; return [{id:'tl',x:cx-rx,y:cy-ry},{id:'tr',x:cx+rx,y:cy-ry},{id:'bl',x:cx-rx,y:cy+ry},{id:'br',x:cx+rx,y:cy+ry}]; }
+    return [];
+  }
+
+  function hitHandle(s,px,py) { for(const p of getHandlePoints(s)) if(Math.abs(px-p.x)<=HANDLE_SIZE&&Math.abs(py-p.y)<=HANDLE_SIZE) return p.id; return null; }
+  function hitArrowEndpoint(s,px,py) { if(Math.hypot(px-s.x1,py-s.y1)<=8) return 'p1'; if(Math.hypot(px-s.x2,py-s.y2)<=8) return 'p2'; return null; }
+
+  const NW=56, NH=36, PW=20;
+  function hitLLNode(s,px,py) { const hw=s.llType==='double'?PW+NW/2:NW/2+PW/2; for(const n of s.nodes) if(Math.abs(px-n.x)<=hw&&Math.abs(py-n.y)<=NH/2+4) return n; return null; }
+
+  function hitShape(s,px,py) {
+    if(s.type==='rect') { const{x,y,w,h,lw}=s,pad=Math.max(lw,5); const inX=px>=Math.min(x,x+w)-pad&&px<=Math.max(x,x+w)+pad,inY=py>=Math.min(y,y+h)-pad&&py<=Math.max(y,y+h)+pad; if(!inX||!inY) return false; return Math.abs(px-x)<=pad||Math.abs(px-(x+w))<=pad||Math.abs(py-y)<=pad||Math.abs(py-(y+h))<=pad; }
+    if(s.type==='circle') { if(!s.rx||!s.ry) return false; const dx=(px-s.cx)/s.rx,dy=(py-s.cy)/s.ry; return Math.abs(Math.sqrt(dx*dx+dy*dy)-1)<0.25; }
+    if(s.type==='ll') return hitLLNode(s,px,py)!==null;
+    if(s.type==='text') { ctx.font=`${s.fontSize}px sans-serif`; const lines=s.text.split('\n'),w=Math.max(...lines.map(l=>ctx.measureText(l).width)),h=lines.length*s.fontSize*1.4; return px>=s.x-4&&px<=s.x+w+4&&py>=s.y-4&&py<=s.y+h+4; }
+    if(s.type==='arrow') { const dx=s.x2-s.x1,dy=s.y2-s.y1,len=Math.sqrt(dx*dx+dy*dy)||1,t=Math.max(0,Math.min(1,((px-s.x1)*dx+(py-s.y1)*dy)/(len*len))),cx=s.x1+t*dx,cy=s.y1+t*dy; return Math.sqrt((px-cx)**2+(py-cy)**2)<=Math.max(s.lw,5)+4; }
+    return false;
+  }
+
+  function moveShape(s,dx,dy) {
+    if(s.type==='rect'){s.x+=dx;s.y+=dy;} else if(s.type==='circle'){s.cx+=dx;s.cy+=dy;} else if(s.type==='ll'){s.nodes.forEach(n=>{n.x+=dx;n.y+=dy;});} else if(s.type==='text'){s.x+=dx;s.y+=dy;} else if(s.type==='arrow'){s.x1+=dx;s.y1+=dy;s.x2+=dx;s.y2+=dy;}
+  }
+
+  function doResize(s,handle,orig,dx,dy) {
+    if(s.type==='rect'){let{x,y,w,h}=orig;if(handle.includes('l')){x+=dx;w-=dx;}if(handle.includes('r')||handle==='mr'){w+=dx;}if(handle.includes('t')||handle==='tm'){y+=dy;h-=dy;}if(handle.includes('b')||handle==='bm'){h+=dy;}s.x=x;s.y=y;s.w=w;s.h=h;}
+    else if(s.type==='circle'){let{cx,cy,rx,ry}=orig;if(handle==='tl'){rx-=dx/2;cx+=dx/2;ry-=dy/2;cy+=dy/2;}else if(handle==='tr'){rx+=dx/2;cx+=dx/2;ry-=dy/2;cy+=dy/2;}else if(handle==='bl'){rx-=dx/2;cx+=dx/2;ry+=dy/2;cy+=dy/2;}else if(handle==='br'){rx+=dx/2;cx+=dx/2;ry+=dy/2;cy+=dy/2;}s.cx=cx;s.cy=cy;s.rx=Math.max(5,Math.abs(rx));s.ry=Math.max(5,Math.abs(ry));}
+  }
+
+  function drawLLNode(x,y,color,lw,llType) {
+    ctx.lineWidth=Math.max(lw,1.5); ctx.strokeStyle=color;
+    const ty=y-NH/2;
+    if(llType==='double'){const lx=x-PW-NW/2;ctx.strokeRect(lx,ty,PW,NH);ctx.strokeRect(lx+PW,ty,NW,NH);ctx.strokeRect(lx+PW+NW,ty,PW,NH);}
+    else{const lx=x-NW/2-PW/2;ctx.strokeRect(lx,ty,NW,NH);ctx.strokeRect(lx+NW,ty,PW,NH);}
+  }
+
+  function arrowHead(x,y,ang){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-8*Math.cos(ang-0.4),y-8*Math.sin(ang-0.4));ctx.lineTo(x-8*Math.cos(ang+0.4),y-8*Math.sin(ang+0.4));ctx.closePath();ctx.fill();}
+
+  function drawLLArrow(n1,n2,color,llType) {
+    ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=1.5;
+    if(llType==='double'){
+      const fx=n1.x+NW/2+PW/2,fy=n1.y-6,tx=n2.x-NW/2-PW/2,ty=n2.y-6;
+      if(Math.abs(fx-tx)<4&&Math.abs(fy-ty)<4)return;
+      ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(tx,ty);ctx.stroke();arrowHead(tx,ty,Math.atan2(ty-fy,tx-fx));
+      const bfx=n2.x-NW/2-PW/2,bfy=n2.y+6,btx=n1.x+NW/2+PW/2,bty=n1.y+6;
+      ctx.beginPath();ctx.moveTo(bfx,bfy);ctx.lineTo(btx,bty);ctx.stroke();arrowHead(btx,bty,Math.atan2(bty-bfy,btx-bfx));
+    } else {
+      const fx=n1.x+NW/2+PW/2,fy=n1.y,tx=n2.x-NW/2-PW/2,ty=n2.y;
+      if(Math.abs(fx-tx)<4&&Math.abs(fy-ty)<4)return;
+      ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(tx,ty);ctx.stroke();arrowHead(tx,ty,Math.atan2(ty-fy,tx-fx));
+    }
+  }
+
+  /* ── text tool ── */
+  const textWrap  = document.getElementById('wbf-text-input-wrap');
+  const textInput = document.getElementById('wbf-text-input');
+  let activeTextPos = null;
+
+  function showTextInput(x,y) {
+    activeTextPos={x,y}; textWrap.style.left=x+'px'; textWrap.style.top=y+'px';
+    textWrap.style.display='block'; textInput.value='';
+    textInput.style.fontSize=wbState.fontSize+'px';
+    textInput.style.color=wbState.color;
+    textInput.style.width='160px'; textInput.style.height=(wbState.fontSize*1.6)+'px';
+    textInput.focus();
+  }
+
+  function commitText() {
+    if(!activeTextPos) return;
+    const val=textInput.value.trim();
+    if(val){saveHist();shapes.push({type:'text',x:activeTextPos.x,y:activeTextPos.y,text:val,color:wbState.color,fontSize:wbState.fontSize});redrawShapes();}
+    textWrap.style.display='none'; activeTextPos=null; textInput.value='';
+  }
+
+  textInput.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){textWrap.style.display='none';activeTextPos=null;return;}
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();commitText();return;}
+    setTimeout(()=>{textInput.style.height='auto';textInput.style.height=textInput.scrollHeight+'px';},0);
+  });
+  textInput.addEventListener('blur', ()=>setTimeout(commitText,100));
+
+  function finishLL(){shapes.forEach(s=>{if(s._active)delete s._active;});redrawShapes();}
+
+  /* ── pointer events ── */
+  function onDown(e) {
+    if(e.button===2||e.type==='contextmenu'){e.preventDefault();if(wbState.tool==='ll')finishLL();return;}
+    e.preventDefault();
+    const p=getPos(e);
+
+    if(wbState.tool==='select'){
+      if(selected){
+        const h=hitHandle(selected,p.x,p.y);
+        if(h){saveHist();resizeShape=selected;resizeHandle=h;resizeStartX=p.x;resizeStartY=p.y;resizeOrig=JSON.parse(JSON.stringify(selected));return;}
+      }
+      if(selected&&selected.type==='arrow'){const ep=hitArrowEndpoint(selected,p.x,p.y);if(ep){saveHist();dragArrowEp={shape:selected,ep};dragOffX=p.x;dragOffY=p.y;sc.style.cursor='crosshair';return;}}
+      const hit=[...shapes].reverse().find(s=>hitShape(s,p.x,p.y));
+      if(hit){selected=hit;saveHist();dragOffX=p.x;dragOffY=p.y;sc.style.cursor='grabbing';if(hit.type==='ll'){const node=hitLLNode(hit,p.x,p.y);dragNode=node?{shape:hit,node}:null;dragShape=node?null:hit;}else{dragShape=hit;dragNode=null;}}
+      else{selected=null;dragShape=null;dragNode=null;dragArrowEp=null;}
+      redrawShapes();return;
+    }
+    if(wbState.tool==='ll'){saveHist();let ll=shapes.find(s=>s.type==='ll'&&s._active);if(!ll){ll={type:'ll',nodes:[],color:wbState.color,lw:wbState.size,llType:wbState.llType,_active:true};shapes.push(ll);}ll.nodes.push({x:p.x,y:p.y});redrawShapes();return;}
+    if(wbState.tool==='text'){commitText();showTextInput(p.x,p.y);return;}
+    if(wbState.tool==='pen'||wbState.tool==='eraser'){saveHist();wbState.drawing=true;bgCtx.beginPath();bgCtx.lineWidth=wbState.tool==='eraser'?wbState.size*5:wbState.size;bgCtx.strokeStyle=wbState.tool==='eraser'?wbState.bgColor:wbState.color;bgCtx.lineCap='round';bgCtx.lineJoin='round';bgCtx.moveTo(p.x,p.y);return;}
+    if(wbState.tool==='arrow'||wbState.tool==='rect'||wbState.tool==='circle'){saveHist();wbState.drawing=true;drawStart=p;selected=null;redrawShapes();}
+  }
+
+  function onMove(e) {
+    e.preventDefault();
+    const p=getPos(e);
+    if(resizeShape){doResize(resizeShape,resizeHandle,resizeOrig,p.x-resizeStartX,p.y-resizeStartY);redrawShapes();return;}
+    if(dragArrowEp){if(dragArrowEp.ep==='p1'){dragArrowEp.shape.x1=p.x;dragArrowEp.shape.y1=p.y;}else{dragArrowEp.shape.x2=p.x;dragArrowEp.shape.y2=p.y;}redrawShapes();return;}
+    if(dragNode){dragNode.node.x+=p.x-dragOffX;dragNode.node.y+=p.y-dragOffY;dragOffX=p.x;dragOffY=p.y;redrawShapes();return;}
+    if(dragShape){moveShape(dragShape,p.x-dragOffX,p.y-dragOffY);dragOffX=p.x;dragOffY=p.y;redrawShapes();return;}
+    if(!wbState.drawing)return;
+    if(wbState.tool==='pen'||wbState.tool==='eraser'){bgCtx.lineTo(p.x,p.y);bgCtx.stroke();return;}
+    const r=sc.getBoundingClientRect();
+    ctx.clearRect(0,0,r.width,r.height);shapes.forEach(s=>drawShape(s,s===selected));
+    ctx.save();ctx.strokeStyle=wbState.color;ctx.lineWidth=wbState.size;ctx.lineCap='round';
+    if(wbState.tool==='arrow'){const ang=Math.atan2(p.y-drawStart.y,p.x-drawStart.x),hl=Math.max(10,wbState.size*3.5);ctx.beginPath();ctx.moveTo(drawStart.x,drawStart.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.save();ctx.fillStyle=wbState.color;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-hl*Math.cos(ang-0.42),p.y-hl*Math.sin(ang-0.42));ctx.lineTo(p.x-hl*Math.cos(ang+0.42),p.y-hl*Math.sin(ang+0.42));ctx.closePath();ctx.fill();ctx.restore();}
+    else if(wbState.tool==='rect'){ctx.strokeRect(drawStart.x,drawStart.y,p.x-drawStart.x,p.y-drawStart.y);}
+    else if(wbState.tool==='circle'){const rx=Math.abs(p.x-drawStart.x)/2,ry=Math.abs(p.y-drawStart.y)/2,cx=drawStart.x+(p.x-drawStart.x)/2,cy=drawStart.y+(p.y-drawStart.y)/2;ctx.beginPath();ctx.ellipse(cx,cy,rx||1,ry||1,0,0,Math.PI*2);ctx.stroke();}
+    ctx.restore();
+  }
+
+  function onUp(e) {
+    if(resizeShape){resizeShape=null;return;}
+    if(dragArrowEp){dragArrowEp=null;sc.style.cursor='default';return;}
+    if(dragNode){dragNode=null;sc.style.cursor='default';return;}
+    if(dragShape){dragShape=null;sc.style.cursor='default';return;}
+    if(!wbState.drawing)return;
+    wbState.drawing=false;
+    const p=getPos(e);
+    if(wbState.tool==='pen'||wbState.tool==='eraser'){bgCtx.closePath();return;}
+    if(wbState.tool==='arrow'&&drawStart){const dx=p.x-drawStart.x,dy=p.y-drawStart.y;if(Math.sqrt(dx*dx+dy*dy)>8){const s={type:'arrow',x1:drawStart.x,y1:drawStart.y,x2:p.x,y2:p.y,color:wbState.color,lw:wbState.size};shapes.push(s);selected=s;}}
+    else if(wbState.tool==='rect'&&drawStart){const s={type:'rect',x:drawStart.x,y:drawStart.y,w:p.x-drawStart.x,h:p.y-drawStart.y,color:wbState.color,lw:wbState.size};if(Math.abs(s.w)>4&&Math.abs(s.h)>4){shapes.push(s);selected=s;}}
+    else if(wbState.tool==='circle'&&drawStart){const rx=Math.abs(p.x-drawStart.x)/2,ry=Math.abs(p.y-drawStart.y)/2,cx=drawStart.x+(p.x-drawStart.x)/2,cy=drawStart.y+(p.y-drawStart.y)/2;if(rx>2&&ry>2){const s={type:'circle',cx,cy,rx,ry,color:wbState.color,lw:wbState.size};shapes.push(s);selected=s;}}
+    drawStart=null;redrawShapes();
+  }
+
+  sc.addEventListener('mousemove', e=>{
+    if(wbState.tool!=='select')return;
+    const p=getPos(e);
+    if(selected&&selected.type==='arrow'&&hitArrowEndpoint(selected,p.x,p.y)){sc.style.cursor='crosshair';return;}
+    if(selected&&hitHandle(selected,p.x,p.y)){sc.style.cursor='nwse-resize';return;}
+    sc.style.cursor=[...shapes].reverse().find(s=>hitShape(s,p.x,p.y))?'grab':'default';
+  });
+
+  sc.addEventListener('mousedown',onDown);sc.addEventListener('mousemove',onMove);sc.addEventListener('mouseup',onUp);sc.addEventListener('mouseleave',onUp);
+  sc.addEventListener('touchstart',onDown,{passive:false});sc.addEventListener('touchmove',onMove,{passive:false});sc.addEventListener('touchend',onUp);
+  sc.addEventListener('contextmenu',e=>{e.preventDefault();if(wbState.tool==='ll')finishLL();});
+
+  /* ── toolbar wiring ── */
+  document.querySelectorAll('[data-wbf-tool]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('[data-wbf-tool]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active'); wbState.tool=btn.dataset.wbfTool;
+      hint.textContent=HINTS[wbState.tool]||'';
+      commitText(); if(wbState.tool!=='ll')finishLL();
+      if(wbState.tool!=='select'){selected=null;redrawShapes();}
+      sc.style.cursor=wbState.tool==='select'?'default':'crosshair';
+    });
+  });
+
+  document.querySelectorAll('[data-wbf-color]').forEach(btn=>{
+    btn.addEventListener('click',()=>{document.querySelectorAll('[data-wbf-color]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');wbState.color=btn.dataset.wbfColor;});
+  });
+
+  document.querySelectorAll('[data-wbf-size]').forEach(btn=>{
+    btn.addEventListener('click',()=>{document.querySelectorAll('[data-wbf-size]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');wbState.size=parseInt(btn.dataset.wbfSize);});
+  });
+
+  document.getElementById('wbf-ll-type').addEventListener('change',e=>{wbState.llType=e.target.value;finishLL();});
+
+  document.getElementById('wbf-font-size').addEventListener('change',e=>{
+    wbState.fontSize=parseInt(e.target.value);
+    if(activeTextPos){textInput.style.fontSize=wbState.fontSize+'px';textInput.style.height=(wbState.fontSize*1.6)+'px';}
+  });
+
+  document.getElementById('wbf-undo-btn').addEventListener('click',()=>{
+    if(!history.length)return;
+    const entry=history.pop();
+    const img=new Image();img.onload=()=>{const r=bgCanvas.getBoundingClientRect();bgCtx.clearRect(0,0,r.width,r.height);bgCtx.drawImage(img,0,0);};img.src=entry.bg;
+    shapes=JSON.parse(entry.shapes);selected=null;dragShape=null;dragNode=null;redrawShapes();
+  });
+
+  document.getElementById('wbf-clear-btn').addEventListener('click',()=>{
+    saveHist();shapes=[];selected=null;
+    const r=bgCanvas.getBoundingClientRect();bgCtx.fillStyle=wbState.bgColor;bgCtx.fillRect(0,0,r.width,r.height);redrawShapes();
+  });
+
+  const gridToggle=document.getElementById('wbf-grid-toggle');
+  gridToggle.addEventListener('click',()=>{wbState.grid=!wbState.grid;gridToggle.classList.toggle('active',wbState.grid);gridToggle.innerHTML=`<i class="ti ti-grid-dots"></i> Grid ${wbState.grid?'On':'Off'}`;drawGrid();});
+  document.getElementById('wbf-grid-size').addEventListener('change',e=>{wbState.gridSize=parseInt(e.target.value);drawGrid();});
+  document.getElementById('wbf-grid-type').addEventListener('change',e=>{wbState.gridType=e.target.value;drawGrid();});
+
+  document.querySelectorAll('[data-wbf-bg]').forEach(btn=>{
+    btn.addEventListener('click',()=>{document.querySelectorAll('[data-wbf-bg]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyBgColor(btn.dataset.wbfBg);});
+  });
+  document.getElementById('wbf-bg-picker').addEventListener('input',e=>{document.querySelectorAll('[data-wbf-bg]').forEach(b=>b.classList.remove('active'));applyBgColor(e.target.value);});
+
+  /* init after panel becomes visible */
+  trigger.addEventListener('click', () => { if(panel.classList.contains('wbf-visible')) setTimeout(wbResize, 60); });
+})();
+</script>
+
 </body>
 </html>
